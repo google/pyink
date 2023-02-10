@@ -820,7 +820,7 @@ def reformat_one(
     mode: Mode,
     report: "Report",
     *,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> None:
     """Reformat a single file under `src` without spawning child processes.
 
@@ -879,7 +879,7 @@ def format_file_in_place(
     write_back: WriteBack = WriteBack.NO,
     lock: Any = None,  # multiprocessing.Manager().Lock() is some crazy proxy
     *,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> bool:
     """Format file under `src` path. Return True if changed.
 
@@ -946,7 +946,7 @@ def format_stdin_to_stdout(
     content: Optional[str] = None,
     write_back: WriteBack = WriteBack.NO,
     mode: Mode,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> bool:
     """Format file on stdin. Return True if changed.
 
@@ -997,7 +997,7 @@ def check_stability_and_equivalence(
     dst_contents: str,
     *,
     mode: Mode,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> None:
     """Perform stability and equivalence checks.
 
@@ -1014,7 +1014,7 @@ def format_file_contents(
     *,
     fast: bool,
     mode: Mode,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> FileContent:
     """Reformat contents of a file and return new contents.
 
@@ -1148,7 +1148,7 @@ def format_str(
     src_contents: str,
     *,
     mode: Mode,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> str:
     """Reformat a string and return new contents.
 
@@ -1198,7 +1198,7 @@ def _format_str_once(
     src_contents: str,
     *,
     mode: Mode,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> str:
     src_node = lib2to3_parse(src_contents.lstrip(), mode.target_versions)
     dst_blocks: List[LinesBlock] = []
@@ -1499,7 +1499,7 @@ def assert_stable(
     dst: str,
     mode: Mode,
     *,
-    lines: Optional[Collection[tuple[int, int]]] = None,
+    lines: Optional[Collection[Tuple[int, int]]] = None,
 ) -> None:
     """Raise AssertionError if `dst` reformats differently the second time."""
     # We shouldn't call format_str() here, because that formats the string
