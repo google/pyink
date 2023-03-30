@@ -198,10 +198,14 @@ Yes! You can put the following in your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/google/pyink
-    rev: 23.1.2
+    rev: 23.3.0
     hooks:
       - id: pyink
-        language_version: python3.8
+        # It is recommended to specify the latest version of Python
+        # supported by your project here, or alternatively use
+        # pre-commit's default_language_version, see
+        # https://pre-commit.com/#top_level-default_language_version
+        language_version: python3.9
 ```
 
 # Why the name?
