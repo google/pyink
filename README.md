@@ -191,6 +191,19 @@ Code's `settings.json`:
 }
 ```
 
+## Can I use *Pyink* with the [pre-commit](https://pre-commit.com/) framework?
+
+Yes! You can put the following in your `.pre-commit-config.yaml` file:
+
+```yaml
+repos:
+  - repo: https://github.com/google/pyink
+    rev: 23.1.2
+    hooks:
+      - id: pyink
+        language_version: python3.8
+```
+
 # Why the name?
 
 We want a name with the same number of characters as *Black*, to make patching
