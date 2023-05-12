@@ -5,7 +5,12 @@ import sys
 from dataclasses import replace
 from enum import Enum, auto
 from functools import partial, wraps
-from typing import Collection, Iterator, List, Literal, Optional, Set, Union, cast
+from typing import Collection, Iterator, List, Optional, Set, Union, cast
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Final, Literal
+else:
+    from typing import Final, Literal
 
 from pyink.brackets import (
     COMMA_PRIORITY,
