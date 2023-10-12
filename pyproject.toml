@@ -15,7 +15,7 @@ build-backend = "hatchling.build"
 name = "pyink"
 description = "Pyink is a python formatter, forked from Black with slightly different behavior."
 license = { text = "MIT" }
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 readme = "README.md"
 authors = [{name = "The Pyink Maintainers", email = "pyink-maintainers@google.com"}]
 classifiers = [
@@ -26,11 +26,11 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Software Development :: Quality Assurance",
 ]
@@ -41,9 +41,8 @@ dependencies = [
   "pathspec>=0.9.0",
   "platformdirs>=2",
   "tomli>=1.1.0; python_version < '3.11'",
-  "typed-ast>=1.4.2; python_version < '3.8' and implementation_name == 'cpython'",
-  "typing_extensions>=3.10.0.0; python_version < '3.10'",
-  "black>=23.3.0",
+  "typing_extensions>=4.0.1; python_version < '3.11'",
+  "black>=23.9.1",
 ]
 dynamic = ["version"]
 
@@ -93,10 +92,12 @@ filterwarnings = [
     # this is mitigated by a try/catch in https://github.com/psf/black/pull/3198/
     # this ignore can be removed when support for aiohttp 3.x is dropped.
     '''ignore:Middleware decorator is deprecated since 4\.0 and its behaviour is default, you can simply remove this decorator:DeprecationWarning''',
-    # this is mitigated by https://github.com/python/cpython/issues/79071 in python 3.8+
-    # this ignore can be removed when support for 3.7 is dropped.
-    '''ignore:Bare functions are deprecated, use async ones:DeprecationWarning''',
     # aiohttp is using deprecated cgi modules - Safe to remove when fixed:
     # https://github.com/aio-libs/aiohttp/issues/6905
     '''ignore:'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning''',
+    # Work around https://github.com/pytest-dev/pytest/issues/10977 for Python 3.12
+    '''ignore:(Attribute s|Attribute n|ast.Str|ast.Bytes|ast.NameConstant|ast.Num) is deprecated and will be removed in Python 3.14:DeprecationWarning''',
+    # Will be fixed with aiohttp 3.9.0
+    # https://github.com/aio-libs/aiohttp/pull/7302
+    "ignore:datetime.*utcfromtimestamp\\(\\) is deprecated and scheduled for removal:DeprecationWarning",
 ]

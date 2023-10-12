@@ -7,7 +7,7 @@ import tokenize
 import traceback
 from contextlib import contextmanager
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
@@ -35,7 +35,7 @@ from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPatternError
 
 from _pyink_version import version as __version__
-from pyink.cache import Cache, get_cache_info, read_cache, write_cache
+from pyink.cache import Cache
 from pyink.comments import normalize_fmt_off
 from pyink.const import (
     DEFAULT_EXCLUDES,
@@ -64,15 +64,9 @@ from pyink.handle_ipynb_magics import (
 )
 from pyink.linegen import LN, LineGenerator, transform_line
 from pyink.lines import EmptyLineTracker, LinesBlock
-from pyink.mode import (
-    FUTURE_FLAG_TO_FEATURE,
-    VERSION_TO_FEATURES,
-    Feature,
-    Mode,
-    QuoteStyle,
-    TargetVersion,
-    supports_feature,
-)
+from pyink.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature
+from pyink.mode import Mode as Mode  # re-exported
+from pyink.mode import QuoteStyle, TargetVersion, supports_feature
 from pyink.nodes import (
     STARS,
     is_number_token,
@@ -131,7 +125,9 @@ def read_pyproject_toml(
     otherwise.
     """
     if not value:
-        value = find_pyproject_toml(ctx.params.get("src", ()))
+        value = find_pyproject_toml(
+            ctx.params.get("src", ()), ctx.params.get("stdin_filename", None)
+        )
         if value is None:
             return None
 
@@ -157,6 +153,16 @@ def read_pyproject_toml(
     if target_version is not None and not isinstance(target_version, list):
         raise click.BadOptionUsage(
             "target-version", "Config key target-version must be a list"
+        )
+
+    exclude = config.get("exclude")
+    if exclude is not None and not isinstance(exclude, str):
+        raise click.BadOptionUsage("exclude", "Config key exclude must be a string")
+
+    extend_exclude = config.get("extend_exclude")
+    if extend_exclude is not None and not isinstance(extend_exclude, str):
+        raise click.BadOptionUsage(
+            "extend-exclude", "Config key extend-exclude must be a string"
         )
 
     default_map: Dict[str, Any] = {}
@@ -401,6 +407,7 @@ def validate_regex(
 @click.option(
     "--stdin-filename",
     type=str,
+    is_eager=True,
     help=(
         "The name of the file when passing it through stdin. Useful to make "
         "sure Black will respect --force-exclude option on some "
@@ -412,7 +419,10 @@ def validate_regex(
     "--workers",
     type=click.IntRange(min=1),
     default=None,
-    help="Number of parallel workers [default: number of CPUs in the system]",
+    help=(
+        "Number of parallel workers [default: PYINK_NUM_WORKERS environment variable "
+        "or number of CPUs in the system]"
+    ),
 )
 @click.option(
     "-q",
@@ -521,26 +531,6 @@ def main(  # noqa: C901
                 fg="blue",
             )
 
-            normalized = [
-                (
-                    (source, source)
-                    if source == "-"
-                    else (normalize_path_maybe_ignore(Path(source), root), source)
-                )
-                for source in src
-            ]
-            srcs_string = ", ".join(
-                [
-                    (
-                        f'"{_norm}"'
-                        if _norm
-                        else f'\033[31m"{source} (skipping - invalid)"\033[34m'
-                    )
-                    for _norm, source in normalized
-                ]
-            )
-            out(f"Sources to be formatted: {srcs_string}", fg="blue")
-
         if config:
             config_source = ctx.get_parameter_source("config")
             user_level_config = str(find_user_pyproject_toml())
@@ -636,9 +626,10 @@ def main(  # noqa: C901
             content=code, fast=fast, write_back=write_back, mode=mode, report=report
         )
     else:
+        assert root is not None  # root is only None if code is not None
         try:
             sources = get_sources(
-                ctx=ctx,
+                root=root,
                 src=src,
                 quiet=quiet,
                 verbose=verbose,
@@ -692,7 +683,7 @@ def main(  # noqa: C901
 
 def get_sources(
     *,
-    ctx: click.Context,
+    root: Path,
     src: Tuple[str, ...],
     quiet: bool,
     verbose: bool,
@@ -705,7 +696,6 @@ def get_sources(
 ) -> Set[Path]:
     """Compute the set of files to be formatted."""
     sources: Set[Path] = set()
-    root = ctx.obj["root"]
 
     using_default_exclude = exclude is None
     exclude = re_compile_maybe_verbose(DEFAULT_EXCLUDES) if exclude is None else exclude
@@ -721,9 +711,15 @@ def get_sources(
             is_stdin = False
 
         if is_stdin or p.is_file():
-            normalized_path = normalize_path_maybe_ignore(p, ctx.obj["root"], report)
+            normalized_path: Optional[str] = normalize_path_maybe_ignore(
+                p, root, report
+            )
             if normalized_path is None:
+                if verbose:
+                    out(f'Skipping invalid source: "{normalized_path}"', fg="red")
                 continue
+            if verbose:
+                out(f'Found input source: "{normalized_path}"', fg="blue")
 
             normalized_path = "/" + normalized_path
             # Hard-exclude any files that matches the `--force-exclude` regex.
@@ -739,13 +735,18 @@ def get_sources(
                 p = Path(f"{STDIN_PLACEHOLDER}{str(p)}")
 
             if p.suffix == ".ipynb" and not jupyter_dependencies_are_installed(
-                verbose=verbose, quiet=quiet
+                warn=verbose or not quiet
             ):
                 continue
 
             sources.add(p)
         elif p.is_dir():
-            p = root / normalize_path_maybe_ignore(p, ctx.obj["root"], report)
+            p_relative = normalize_path_maybe_ignore(p, root, report)
+            assert p_relative is not None
+            p = root / p_relative
+            if verbose:
+                out(f'Found input source directory: "{p}"', fg="blue")
+
             if using_default_exclude:
                 gitignore = {
                     root: root_gitignore,
@@ -754,7 +755,7 @@ def get_sources(
             sources.update(
                 gen_python_files(
                     p.iterdir(),
-                    ctx.obj["root"],
+                    root,
                     include,
                     exclude,
                     extend_exclude,
@@ -766,9 +767,12 @@ def get_sources(
                 )
             )
         elif s == "-":
+            if verbose:
+                out("Found input source stdin", fg="blue")
             sources.add(p)
         else:
             err(f"invalid path: {s}")
+
     return sources
 
 
@@ -848,12 +852,9 @@ def reformat_one(
             ):
                 changed = Changed.YES
         else:
-            cache: Cache = {}
+            cache = Cache.read(mode)
             if write_back not in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
-                cache = read_cache(mode)
-                res_src = src.resolve()
-                res_src_s = str(res_src)
-                if res_src_s in cache and cache[res_src_s] == get_cache_info(res_src):
+                if not cache.is_changed(src):
                     changed = Changed.CACHED
             if changed is not Changed.CACHED and format_file_in_place(
                 src, fast=fast, write_back=write_back, mode=mode, lines=lines
@@ -862,7 +863,7 @@ def reformat_one(
             if (write_back is WriteBack.YES and changed is not Changed.CACHED) or (
                 write_back is WriteBack.CHECK and changed is Changed.NO
             ):
-                write_cache(cache, [src], mode)
+                cache.write([src])
         report.done(src, changed)
     except Exception as exc:
         if report.verbose:
@@ -890,7 +891,7 @@ def format_file_in_place(
     elif src.suffix == ".ipynb":
         mode = replace(mode, is_ipynb=True)
 
-    then = datetime.utcfromtimestamp(src.stat().st_mtime)
+    then = datetime.fromtimestamp(src.stat().st_mtime, timezone.utc)
     header = b""
     with open(src, "rb") as buf:
         if mode.skip_source_first_line:
@@ -913,9 +914,9 @@ def format_file_in_place(
         with open(src, "w", encoding=encoding, newline=newline) as f:
             f.write(dst_contents)
     elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
-        now = datetime.utcnow()
-        src_name = f"{src}\t{then} +0000"
-        dst_name = f"{src}\t{now} +0000"
+        now = datetime.now(timezone.utc)
+        src_name = f"{src}\t{then}"
+        dst_name = f"{src}\t{now}"
         if mode.is_ipynb:
             diff_contents = ipynb_diff(src_contents, dst_contents, src_name, dst_name)
         else:
@@ -954,7 +955,7 @@ def format_stdin_to_stdout(
     write a diff to stdout. The `mode` argument is passed to
     :func:`format_file_contents`.
     """
-    then = datetime.utcnow()
+    then = datetime.now(timezone.utc)
 
     if content is None:
         src, encoding, newline = decode_bytes(sys.stdin.buffer.read())
@@ -979,9 +980,9 @@ def format_stdin_to_stdout(
                 dst += "\n"
             f.write(dst)
         elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
-            now = datetime.utcnow()
-            src_name = f"STDIN\t{then} +0000"
-            dst_name = f"STDOUT\t{now} +0000"
+            now = datetime.now(timezone.utc)
+            src_name = f"STDIN\t{then}"
+            dst_name = f"STDOUT\t{now}"
             d = diff(src, dst, src_name, dst_name)
             if write_back == WriteBack.COLOR_DIFF:
                 d = color_diff(d)
@@ -1396,6 +1397,9 @@ def get_features_used(  # noqa: C901
         ):
             features.add(Feature.VARIADIC_GENERICS)
 
+        elif n.type in (syms.type_stmt, syms.typeparams):
+            features.add(Feature.TYPE_PARAMS)
+
     return features
 
 
@@ -1528,40 +1532,6 @@ def nullcontext() -> Iterator[None]:
     yield
 
 
-def patch_click() -> None:
-    """Make Click not crash on Python 3.6 with LANG=C.
-
-    On certain misconfigured environments, Python 3 selects the ASCII encoding as the
-    default which restricts paths that it can access during the lifetime of the
-    application.  Click refuses to work in this scenario by raising a RuntimeError.
-
-    In case of Black the likelihood that non-ASCII characters are going to be used in
-    file paths is minimal since it's Python source code.  Moreover, this crash was
-    spurious on Python 3.7 thanks to PEP 538 and PEP 540.
-    """
-    modules: List[Any] = []
-    try:
-        from click import core
-    except ImportError:
-        pass
-    else:
-        modules.append(core)
-    try:
-        # Removed in Click 8.1.0 and newer; we keep this around for users who have
-        # older versions installed.
-        from click import _unicodefun  # type: ignore
-    except ImportError:
-        pass
-    else:
-        modules.append(_unicodefun)
-
-    for module in modules:
-        if hasattr(module, "_verify_python3_env"):
-            module._verify_python3_env = lambda: None
-        if hasattr(module, "_verify_python_env"):
-            module._verify_python_env = lambda: None
-
-
 def patched_main() -> None:
     # PyInstaller patches multiprocessing to need freeze_support() even in non-Windows
     # environments so just assume we always need to call it if frozen.
@@ -1570,7 +1540,6 @@ def patched_main() -> None:
 
         freeze_support()
 
-    patch_click()
     main()
 
 

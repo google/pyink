@@ -33,9 +33,10 @@ def check_file(
 @pytest.mark.parametrize("filename", all_data_cases("simple_cases"))
 def test_simple_format(filename: str) -> None:
     magic_trailing_comma = filename != "skip_magic_trailing_comma"
-    check_file(
-        "simple_cases", filename, pyink.Mode(magic_trailing_comma=magic_trailing_comma)
+    mode = pyink.Mode(
+        magic_trailing_comma=magic_trailing_comma, is_pyi=filename.endswith("_pyi")
     )
+    check_file("simple_cases", filename, mode)
 
 
 @pytest.mark.parametrize("filename", all_data_cases("preview"))
@@ -62,6 +63,13 @@ def test_preview_context_managers_targeting_py39() -> None:
     source, expected = read_data("preview_context_managers", "targeting_py39.py")
     mode = pyink.Mode(preview=True, target_versions={pyink.TargetVersion.PY39})
     assert_format(source, expected, mode, minimum_version=(3, 9))
+
+
+@pytest.mark.parametrize("filename", all_data_cases("preview_py_310"))
+def test_preview_python_310(filename: str) -> None:
+    source, expected = read_data("preview_py_310", filename)
+    mode = pyink.Mode(target_versions={pyink.TargetVersion.PY310}, preview=True)
+    assert_format(source, expected, mode, minimum_version=(3, 10))
 
 
 @pytest.mark.parametrize(
@@ -143,6 +151,13 @@ def test_python_311(filename: str) -> None:
     assert_format(source, expected, mode, minimum_version=(3, 11))
 
 
+@pytest.mark.parametrize("filename", all_data_cases("py_312"))
+def test_python_312(filename: str) -> None:
+    source, expected = read_data("py_312", filename)
+    mode = pyink.Mode(target_versions={pyink.TargetVersion.PY312})
+    assert_format(source, expected, mode, minimum_version=(3, 12))
+
+
 @pytest.mark.parametrize("filename", all_data_cases("fast"))
 def test_fast_cases(filename: str) -> None:
     source, expected = read_data("fast", filename)
@@ -195,9 +210,9 @@ def test_stub() -> None:
     assert_format(source, expected, mode)
 
 
-def test_nested_class_stub() -> None:
+def test_nested_stub() -> None:
     mode = replace(DEFAULT_MODE, is_pyi=True, preview=True)
-    source, expected = read_data("miscellaneous", "nested_class_stub.pyi")
+    source, expected = read_data("miscellaneous", "nested_stub.pyi")
     assert_format(source, expected, mode)
 
 

@@ -4,7 +4,9 @@ All notable changes to Pyink are recorded here.
 
 ## Unreleased
 
-* Nothing notable unreleased.
+* _Black_ v23.9.9's new concise formatting for dummy implementations from
+  [psf/black#3796](https://github.com/psf/black/pull/3796) is temporarily
+  disabled for _Pyink_.
 
 ## 23.5.0
 

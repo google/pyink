@@ -3,12 +3,8 @@ blib2to3 Node/Leaf transformation-related utility functions.
 """
 
 import sys
-from typing import Generic, Iterator, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Final, Generic, Iterator, List, Optional, Set, Tuple, TypeVar, Union
 
-if sys.version_info >= (3, 8):
-    from typing import Final
-else:
-    from typing_extensions import Final
 if sys.version_info >= (3, 10):
     from typing import TypeGuard
 else:
@@ -17,6 +13,7 @@ else:
 from mypy_extensions import mypyc_attr
 
 from pyink.cache import CACHE_DIR
+from pyink.mode import Mode, Preview
 from pyink.strings import has_triple_quotes
 from blib2to3 import pygram
 from blib2to3.pgen2 import token
@@ -175,7 +172,7 @@ class Visitor(Generic[T]):
                 yield from self.visit(child)
 
 
-def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
+def whitespace(leaf: Leaf, *, complex_subscript: bool, mode: Mode) -> str:  # noqa: C901
     """Return whitespace prefix if needed for the given `leaf`.
 
     `complex_subscript` signals whether the given leaf is part of a subscription
@@ -348,6 +345,11 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
                 return SPACE
 
             return NO
+
+        elif Preview.walrus_subscript in mode and (
+            t == token.COLONEQUAL or prev.type == token.COLONEQUAL
+        ):
+            return SPACE
 
         elif not complex_subscript:
             return NO
@@ -728,12 +730,20 @@ def is_multiline_string(leaf: Leaf) -> bool:
 
 def is_stub_suite(node: Node) -> bool:
     """Return True if `node` is a suite with a stub body."""
+
+    # If there is a comment, we want to keep it.
+    if node.prefix.strip():
+        return False
+
     if (
         len(node.children) != 4
         or node.children[0].type != token.NEWLINE
         or node.children[1].type != token.INDENT
         or node.children[3].type != token.DEDENT
     ):
+        return False
+
+    if node.children[3].prefix.strip():
         return False
 
     return is_stub_body(node.children[2])
@@ -749,7 +759,8 @@ def is_stub_body(node: LN) -> bool:
 
     child = node.children[0]
     return (
-        child.type == syms.atom
+        not child.prefix.strip()
+        and child.type == syms.atom
         and len(child.children) == 3
         and all(leaf == Leaf(token.DOT, ".") for leaf in child.children)
     )
@@ -826,12 +837,27 @@ def is_async_stmt_or_funcdef(leaf: Leaf) -> bool:
     )
 
 
-def is_type_comment(leaf: Leaf, suffix: str = "") -> bool:
-    """Return True if the given leaf is a special comment.
-    Only returns true for type comments for now."""
+def is_type_comment(leaf: Leaf) -> bool:
+    """Return True if the given leaf is a type comment. This function should only
+    be used for general type comments (excluding ignore annotations, which should
+    use `is_type_ignore_comment`). Note that general type comments are no longer
+    used in modern version of Python, this function may be deprecated in the future."""
     t = leaf.type
     v = leaf.value
-    return t in {token.COMMENT, STANDALONE_COMMENT} and v.startswith("# type:" + suffix)
+    return t in {token.COMMENT, STANDALONE_COMMENT} and v.startswith("# type:")
+
+
+def is_type_ignore_comment(leaf: Leaf) -> bool:
+    """Return True if the given leaf is a type comment with ignore annotation."""
+    t = leaf.type
+    v = leaf.value
+    return t in {token.COMMENT, STANDALONE_COMMENT} and is_type_ignore_comment_string(v)
+
+
+def is_type_ignore_comment_string(value: str) -> bool:
+    """Return True if the given string match with type comment with
+    ignore annotation."""
+    return value.startswith("# type: ignore")
 
 
 def wrap_in_parentheses(parent: Node, child: LN, *, visible: bool = True) -> None:
