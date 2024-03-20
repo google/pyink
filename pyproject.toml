@@ -42,7 +42,7 @@ dependencies = [
   "platformdirs>=2",
   "tomli>=1.1.0; python_version < '3.11'",
   "typing_extensions>=4.0.1; python_version < '3.11'",
-  "black==23.12.1",
+  "black==24.3.0",
 ]
 dynamic = ["version"]
 
