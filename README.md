@@ -122,6 +122,7 @@ patches as possible in the future.
 
     *   https://github.com/psf/black/pull/2916
     *   https://github.com/psf/black/pull/2278
+    *   https://github.com/psf/black/pull/4146
 
 ## Historical differences
 

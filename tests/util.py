@@ -112,16 +112,24 @@ def assert_format(
     # For both preview and non-preview tests, ensure that Black doesn't crash on
     # this code, but don't pass "expected" because the precise output may differ.
     try:
+        if mode.unstable:
+            new_mode = replace(mode, unstable=False, preview=False)
+        else:
+            new_mode = replace(mode, preview=not mode.preview)
         _assert_format_inner(
             source,
             None,
-            replace(mode, preview=not mode.preview),
+            new_mode,
             fast=fast,
             minimum_version=minimum_version,
             lines=lines,
         )
     except Exception as e:
-        text = "non-preview" if mode.preview else "preview"
+        text = (
+            "unstable"
+            if mode.unstable
+            else "non-preview" if mode.preview else "preview"
+        )
         raise FormatFailure(
             f"Black crashed formatting this case in {text} mode."
         ) from e
@@ -138,7 +146,7 @@ def assert_format(
             _assert_format_inner(
                 source,
                 None,
-                replace(mode, preview=preview_mode, line_length=1),
+                replace(mode, preview=preview_mode, line_length=1, unstable=False),
                 fast=fast,
                 minimum_version=minimum_version,
                 lines=lines,
@@ -241,6 +249,7 @@ def get_flags_parser() -> argparse.ArgumentParser:
         "--skip-magic-trailing-comma", default=False, action="store_true"
     )
     parser.add_argument("--preview", default=False, action="store_true")
+    parser.add_argument("--unstable", default=False, action="store_true")
     parser.add_argument("--fast", default=False, action="store_true")
     parser.add_argument(
         "--minimum-version",
@@ -282,6 +291,7 @@ def parse_mode(flags_line: str) -> TestCaseArgs:
         preview=args.preview,
         is_pyink=args.pyink,
         pyink_indentation=args.pyink_indentation,
+        unstable=args.unstable,
     )
     if args.line_ranges:
         lines = parse_line_ranges(args.line_ranges)

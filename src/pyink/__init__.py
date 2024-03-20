@@ -1,16 +1,16 @@
+from contextlib import contextmanager
+from dataclasses import replace
+from datetime import datetime, timezone
+from enum import Enum
 import io
 import json
+from json.decoder import JSONDecodeError
+from pathlib import Path
 import platform
 import re
 import sys
 import tokenize
 import traceback
-from contextlib import contextmanager
-from dataclasses import replace
-from datetime import datetime, timezone
-from enum import Enum
-from json.decoder import JSONDecodeError
-from pathlib import Path
 from typing import (
     Any,
     Collection,
@@ -28,12 +28,13 @@ from typing import (
     Union,
 )
 
+from blib2to3.pgen2 import token
+from blib2to3.pytree import Leaf, Node
 import click
 from click.core import ParameterSource
 from mypy_extensions import mypyc_attr
 from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPatternError
-
 from _pyink_version import version as __version__
 from pyink.cache import Cache
 from pyink.comments import normalize_fmt_off
@@ -44,14 +45,15 @@ from pyink.const import (
     STDIN_PLACEHOLDER,
 )
 from pyink.files import (
+    best_effort_relative_path,
     find_project_root,
     find_pyproject_toml,
     find_user_pyproject_toml,
     gen_python_files,
     get_gitignore,
-    normalize_path_maybe_ignore,
     parse_pyproject_toml,
     path_is_excluded,
+    resolves_outside_root_or_cannot_stat,
     wrap_stream_for_windows,
 )
 from pyink.handle_ipynb_magics import (
@@ -65,9 +67,9 @@ from pyink.handle_ipynb_magics import (
 )
 from pyink.linegen import LN, LineGenerator, transform_line
 from pyink.lines import EmptyLineTracker, LinesBlock
-from pyink.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature
+from pyink.mode import FUTURE_FLAG_TO_FEATURE, Feature, VERSION_TO_FEATURES
 from pyink.mode import Mode as Mode  # re-exported
-from pyink.mode import QuoteStyle, TargetVersion, supports_feature
+from pyink.mode import Preview, QuoteStyle, TargetVersion, supports_feature
 from pyink.nodes import (
     STARS,
     is_number_token,
@@ -76,14 +78,22 @@ from pyink.nodes import (
     syms,
 )
 from pyink.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
-from pyink.parsing import InvalidInput  # noqa F401
-from pyink.parsing import lib2to3_parse, parse_ast, stringify_ast
+from pyink.parsing import (  # noqa F401
+    ASTSafetyError,
+    InvalidInput,
+    lib2to3_parse,
+    parse_ast,
+    stringify_ast,
+)
+from pyink.ranges import (
+    adjusted_lines,
+    convert_unchanged_lines,
+    parse_line_ranges,
+    sanitized_lines,
+)
 from pyink import ink
-from pyink.ranges import adjusted_lines, convert_unchanged_lines, parse_line_ranges
 from pyink.report import Changed, NothingChanged, Report
 from pyink.trans import iter_fexpr_spans
-from blib2to3.pgen2 import token
-from blib2to3.pytree import Leaf, Node
 
 COMPILED = Path(__file__).suffix in (".pyd", ".so")
 
@@ -142,6 +152,7 @@ def read_pyproject_toml(
     if not config:
         return None
     else:
+        spellcheck_pyproject_toml_keys(ctx, list(config), value)
         # Sanitize the values to be Click friendly. For more information please see:
         # https://github.com/psf/black/issues/1458
         # https://github.com/pallets/click/issues/1567
@@ -181,6 +192,22 @@ def read_pyproject_toml(
     return value
 
 
+def spellcheck_pyproject_toml_keys(
+    ctx: click.Context, config_keys: List[str], config_file_path: str
+) -> None:
+    invalid_keys: List[str] = []
+    available_config_options = {param.name for param in ctx.command.params}
+    for key in config_keys:
+        if key not in available_config_options:
+            invalid_keys.append(key)
+    if invalid_keys:
+        keys_str = ", ".join(map(repr, invalid_keys))
+        out(
+            f"Invalid config keys detected: {keys_str} (in {config_file_path})",
+            fg="red",
+        )
+
+
 def target_version_option_callback(
     c: click.Context, p: Union[click.Option, click.Parameter], v: Tuple[str, ...]
 ) -> List[TargetVersion]:
@@ -190,6 +217,13 @@ def target_version_option_callback(
     when it was a lambda, causing mypyc trouble.
     """
     return [TargetVersion[val.upper()] for val in v]
+
+
+def enable_unstable_feature_callback(
+    c: click.Context, p: Union[click.Option, click.Parameter], v: Tuple[str, ...]
+) -> List[Preview]:
+    """Compute the features from an --enable-unstable-feature flag."""
+    return [Preview[val] for val in v]
 
 
 def re_compile_maybe_verbose(regex: str) -> Pattern[str]:
@@ -237,25 +271,26 @@ def validate_regex(
     multiple=True,
     help=(
         "Python versions that should be supported by Black's output. You should"
-        " include all versions that your code supports. By default, Black will infer"
-        " target versions from the project metadata in pyproject.toml. If this does"
-        " not yield conclusive results, Black will use per-file auto-detection."
+        " include all versions that your code supports. By default, Black will"
+        " infer target versions from the project metadata in pyproject.toml. If"
+        " this does not yield conclusive results, Black will use per-file"
+        " auto-detection."
     ),
 )
 @click.option(
     "--pyi",
     is_flag=True,
     help=(
-        "Format all input files like typing stubs regardless of file extension. This"
-        " is useful when piping source on standard input."
+        "Format all input files like typing stubs regardless of file extension."
+        " This is useful when piping source on standard input."
     ),
 )
 @click.option(
     "--ipynb",
     is_flag=True,
     help=(
-        "Format all input files like Jupyter Notebooks regardless of file extension."
-        "This is useful when piping source on standard input."
+        "Format all input files like Jupyter Notebooks regardless of file"
+        " extension. This is useful when piping source on standard input."
     ),
 )
 @click.option(
@@ -287,17 +322,31 @@ def validate_regex(
     help="Don't use trailing commas as a reason to split lines.",
 )
 @click.option(
-    "--experimental-string-processing",
-    is_flag=True,
-    hidden=True,
-    help="(DEPRECATED and now included in --preview) Normalize string literals.",
-)
-@click.option(
     "--preview",
     is_flag=True,
     help=(
-        "Enable potentially disruptive style changes that may be added to Black's main"
-        " functionality in the next major release."
+        "Enable potentially disruptive style changes that may be added to"
+        " Black's main functionality in the next major release."
+    ),
+)
+@click.option(
+    "--unstable",
+    is_flag=True,
+    help=(
+        "Enable potentially disruptive style changes that have known bugs or"
+        " are not currently expected to make it into the stable style Black's"
+        " next major release. Implies --preview."
+    ),
+)
+@click.option(
+    "--enable-unstable-feature",
+    type=click.Choice([v.name for v in Preview]),
+    callback=enable_unstable_feature_callback,
+    multiple=True,
+    help=(
+        "Enable specific features included in the `--unstable` style. Requires"
+        " `--preview`. No compatibility guarantees are provided on the behavior"
+        " or existence of any unstable features."
     ),
 )
 @click.option(
@@ -305,8 +354,8 @@ def validate_regex(
     is_flag=True,
     default=True,
     help=(
-        "Enable the Pyink formatting mode. Disabling it should behave the same as"
-        " Black."
+        "Enable the Pyink formatting mode. Disabling it should behave the same"
+        " as Black."
     ),
 )
 @click.option(
@@ -317,36 +366,30 @@ def validate_regex(
     help="The number of spaces used for indentation.",
 )
 @click.option(
-    "--pyink-lines",
-    multiple=True,
-    metavar="START-END",
-    help="Deprecated and replaced by --line-ranges",
-    default=(),
-)
-@click.option(
     "--pyink-use-majority-quotes",
     is_flag=True,
     help=(
-        "When normalizing string quotes, infer preferred quote style by calculating the"
-        " majority in the file. Multi-line strings and docstrings are excluded from"
-        " this as they always use double quotes."
+        "When normalizing string quotes, infer preferred quote style by"
+        " calculating the majority in the file. Multi-line strings and"
+        " docstrings are excluded from this as they always use double quotes."
     ),
 )
 @click.option(
     "--check",
     is_flag=True,
     help=(
-        "Don't write the files back, just return the status. Return code 0 means"
-        " nothing would change. Return code 1 means some files would be reformatted."
-        " Return code 123 means there was an internal error."
+        "Don't write the files back, just return the status. Return code 0"
+        " means nothing would change. Return code 1 means some files would be"
+        " reformatted. Return code 123 means there was an internal error."
     ),
 )
 @click.option(
     "--diff",
     is_flag=True,
     help=(
-        "Don't write the files back, just output a diff to indicate what changes"
-        " Black would've made. They are printed to stdout so capturing them is simple."
+        "Don't write the files back, just output a diff to indicate what"
+        " changes Black would've made. They are printed to stdout so capturing"
+        " them is simple."
     ),
 )
 @click.option(
@@ -359,11 +402,11 @@ def validate_regex(
     multiple=True,
     metavar="START-END",
     help=(
-        "When specified, Black will try its best to only format these lines. This"
-        " option can be specified multiple times, and a union of the lines will be"
-        " formatted. Each range must be specified as two integers connected by a `-`:"
-        " `<START>-<END>`. The `<START>` and `<END>` integer indices are 1-based and"
-        " inclusive on both ends."
+        "When specified, Black will try its best to only format these lines."
+        " This option can be specified multiple times, and a union of the lines"
+        " will be formatted. Each range must be specified as two integers"
+        " connected by a `-`: `<START>-<END>`. The `<START>` and `<END>`"
+        " integer indices are 1-based and inclusive on both ends."
     ),
     default=(),
 )
@@ -371,9 +414,9 @@ def validate_regex(
     "--fast/--safe",
     is_flag=True,
     help=(
-        "By default, Black performs an AST safety check after formatting your code."
-        " The --fast flag turns off this check and the --safe flag explicitly enables"
-        " it. [default: --safe]"
+        "By default, Black performs an AST safety check after formatting your"
+        " code. The --fast flag turns off this check and the --safe flag"
+        " explicitly enables it. [default: --safe]"
     ),
 )
 @click.option(
@@ -383,8 +426,8 @@ def validate_regex(
         "Require a specific version of Black to be running. This is useful for"
         " ensuring that all contributors to your project are using the same"
         " version, because different versions of Black may format code a little"
-        " differently. This option can be set in a configuration file for consistent"
-        " results across environments."
+        " differently. This option can be set in a configuration file for"
+        " consistent results across environments."
     ),
 )
 @click.option(
@@ -392,11 +435,12 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "A regular expression that matches files and directories that should be"
-        " excluded on recursive searches. An empty value means no paths are excluded."
-        " Use forward slashes for directories on all platforms (Windows, too)."
-        " By default, Black also ignores all paths listed in .gitignore. Changing this"
-        f" value will override all default exclusions. [default: {DEFAULT_EXCLUDES}]"
+        "A regular expression that matches files and directories that should"
+        " be excluded on recursive searches. An empty value means no paths are"
+        " excluded. Use forward slashes for directories on all platforms"
+        " (Windows, too). By default, Black also ignores all paths listed in"
+        " .gitignore. Changing this value will override all default"
+        f" exclusions. [default: {DEFAULT_EXCLUDES}]"
     ),
     show_default=False,
 )
@@ -405,8 +449,8 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "Like --exclude, but adds additional files and directories on top of the"
-        " default values instead of overriding them."
+        "Like --exclude, but adds additional files and directories on top of"
+        " the default values instead of overriding them."
     ),
 )
 @click.option(
@@ -414,10 +458,10 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "Like --exclude, but files and directories matching this regex will be excluded"
-        " even when they are passed explicitly as arguments. This is useful when"
-        " invoking Black programmatically on changed files, such as in a pre-commit"
-        " hook or editor plugin."
+        "Like --exclude, but files and directories matching this regex will be"
+        " excluded even when they are passed explicitly as arguments. This is"
+        " useful when invoking Black programmatically on changed files, such as"
+        " in a pre-commit hook or editor plugin."
     ),
 )
 @click.option(
@@ -425,9 +469,9 @@ def validate_regex(
     type=str,
     is_eager=True,
     help=(
-        "The name of the file when passing it through stdin. Useful to make sure Black"
-        " will respect the --force-exclude option on some editors that rely on using"
-        " stdin."
+        "The name of the file when passing it through stdin. Useful to make"
+        " sure Black will respect the --force-exclude option on some editors"
+        " that rely on using stdin."
     ),
 )
 @click.option(
@@ -437,10 +481,10 @@ def validate_regex(
     callback=validate_regex,
     help=(
         "A regular expression that matches files and directories that should be"
-        " included on recursive searches. An empty value means all files are included"
-        " regardless of the name. Use forward slashes for directories on all platforms"
-        " (Windows, too). Overrides all exclusions, including from .gitignore and"
-        " command line options."
+        " included on recursive searches. An empty value means all files are"
+        " included regardless of the name. Use forward slashes for directories"
+        " on all platforms (Windows, too). Overrides all exclusions, including"
+        " from .gitignore and command line options."
     ),
     show_default=True,
 )
@@ -450,10 +494,10 @@ def validate_regex(
     type=click.IntRange(min=1),
     default=None,
     help=(
-        "When Black formats multiple files, it may use a process pool to speed up"
-        " formatting. This option controls the number of parallel workers. This can"
-        " also be specified via the PYINK_NUM_WORKERS environment variable. Defaults"
-        " to the number of CPUs in the system."
+        "When Black formats multiple files, it may use a process pool to speed"
+        " up formatting. This option controls the number of parallel workers."
+        " This can also be specified via the PYINK_NUM_WORKERS environment"
+        " variable. Defaults to the number of CPUs in the system."
     ),
 )
 @click.option(
@@ -461,8 +505,8 @@ def validate_regex(
     "--quiet",
     is_flag=True,
     help=(
-        "Stop emitting all non-critical output. Error messages will still be emitted"
-        " (which can silenced by 2>/dev/null)."
+        "Stop emitting all non-critical output. Error messages will still be"
+        " emitted (which can silenced by 2>/dev/null)."
     ),
 )
 @click.option(
@@ -478,15 +522,20 @@ def validate_regex(
 @click.version_option(
     version=__version__,
     message=(
-        f"%(prog)s, %(version)s (compiled: {'yes' if COMPILED else 'no'})\n"
-        f"Python ({platform.python_implementation()}) {platform.python_version()}"
+        "%(prog)s, %(version)s (compiled:"
+        f" {'yes' if COMPILED else 'no'})\nPython"
+        f" ({platform.python_implementation()}) {platform.python_version()}"
     ),
 )
 @click.argument(
     "src",
     nargs=-1,
     type=click.Path(
-        exists=True, file_okay=True, dir_okay=True, readable=True, allow_dash=True
+        exists=True,
+        file_okay=True,
+        dir_okay=True,
+        readable=True,
+        allow_dash=True,
     ),
     is_eager=True,
     metavar="SRC ...",
@@ -522,11 +571,11 @@ def main(  # noqa: C901
     skip_source_first_line: bool,
     skip_string_normalization: bool,
     skip_magic_trailing_comma: bool,
-    experimental_string_processing: bool,
     preview: bool,
+    unstable: bool,
+    enable_unstable_feature: List[Preview],
     pyink: bool,
     pyink_indentation: str,
-    pyink_lines: Sequence[str],
     pyink_use_majority_quotes: bool,
     quiet: bool,
     verbose: bool,
@@ -551,6 +600,14 @@ def main(  # noqa: C901
         ctx.exit(1)
     if not src and code is None:
         out(main.get_usage(ctx) + "\n\nOne of 'SRC' or 'code' is required.")
+        ctx.exit(1)
+
+    # It doesn't do anything if --unstable is also passed, so just allow it.
+    if enable_unstable_feature and not (preview or unstable):
+        out(
+            main.get_usage(ctx)
+            + "\n\n'--enable-unstable-feature' requires '--preview'."
+        )
         ctx.exit(1)
 
     root, method = (
@@ -615,8 +672,8 @@ def main(  # noqa: C901
         skip_source_first_line=skip_source_first_line,
         string_normalization=not skip_string_normalization,
         magic_trailing_comma=not skip_magic_trailing_comma,
-        experimental_string_processing=experimental_string_processing,
         preview=preview,
+        unstable=unstable,
         python_cell_magics=set(python_cell_magics),
         is_pyink=pyink,
         pyink_indentation=pyink_indentation,
@@ -636,18 +693,6 @@ def main(  # noqa: C901
         except ValueError as e:
             err(str(e))
             ctx.exit(1)
-
-    if pyink_lines:
-        out(
-            "WARNING: --pyink-lines= is deprecated and replaced by --line-ranges=.",
-            fg="yellow",
-        )
-        if not lines:
-            try:
-                lines = parse_line_ranges(pyink_lines)
-            except ValueError as e:
-                err(str(e))
-                ctx.exit(1)
 
     if code is not None:
         # Run in quiet mode by default with -c; the extra output isn't useful.
@@ -740,6 +785,7 @@ def get_sources(
     """Compute the set of files to be formatted."""
     sources: Set[Path] = set()
 
+    assert root.is_absolute(), f"INTERNAL ERROR: `root` must be absolute but is {root}"
     using_default_exclude = exclude is None
     exclude = re_compile_maybe_verbose(DEFAULT_EXCLUDES) if exclude is None else exclude
     gitignore: Optional[Dict[Path, PathSpec]] = None
@@ -755,8 +801,12 @@ def get_sources(
 
         # Compare the logic here to the logic in `gen_python_files`.
         if is_stdin or path.is_file():
-            root_relative_path = path.absolute().relative_to(root).as_posix()
+            if resolves_outside_root_or_cannot_stat(path, root, report):
+                if verbose:
+                    out(f'Skipping invalid source: "{path}"', fg="red")
+                continue
 
+            root_relative_path = best_effort_relative_path(path, root).as_posix()
             root_relative_path = "/" + root_relative_path
 
             # Hard-exclude any files that matches the `--force-exclude` regex.
@@ -764,14 +814,6 @@ def get_sources(
                 report.path_ignored(
                     path, "matches the --force-exclude regular expression"
                 )
-                continue
-
-            normalized_path: Optional[str] = normalize_path_maybe_ignore(
-                path, root, report
-            )
-            if normalized_path is None:
-                if verbose:
-                    out(f'Skipping invalid source: "{normalized_path}"', fg="red")
                 continue
 
             if is_stdin:
@@ -783,7 +825,7 @@ def get_sources(
                 continue
 
             if verbose:
-                out(f'Found input source: "{normalized_path}"', fg="blue")
+                out(f'Found input source: "{path}"', fg="blue")
             sources.add(path)
         elif path.is_dir():
             path = root / (path.resolve().relative_to(root))
@@ -1224,6 +1266,10 @@ def format_str(
         hey
 
     """
+    if lines:
+        lines = sanitized_lines(lines, src_contents)
+        if not lines:
+            return src_contents  # Nothing to format
     dst_contents = _format_str_once(src_contents, mode=mode, lines=lines)
     # Forced second pass to work around optional trailing commas (becoming
     # forced trailing commas on pass 2) interacting differently with optional
@@ -1522,7 +1568,7 @@ def assert_equivalent(src: str, dst: str) -> None:
     try:
         src_ast = parse_ast(src)
     except Exception as exc:
-        raise AssertionError(
+        raise ASTSafetyError(
             "cannot use --safe with this file; failed to parse source file AST: "
             f"{exc}\n"
             "This could be caused by running Black with an older Python version "
@@ -1533,7 +1579,7 @@ def assert_equivalent(src: str, dst: str) -> None:
         dst_ast = parse_ast(dst)
     except Exception as exc:
         log = dump_to_file("".join(traceback.format_tb(exc.__traceback__)), dst)
-        raise AssertionError(
+        raise ASTSafetyError(
             f"INTERNAL ERROR: Black produced invalid code: {exc}. "
             "Please report a bug on https://github.com/psf/black/issues.  "
             f"This invalid output might be helpful: {log}"
@@ -1543,7 +1589,7 @@ def assert_equivalent(src: str, dst: str) -> None:
     dst_ast_str = "\n".join(stringify_ast(dst_ast))
     if src_ast_str != dst_ast_str:
         log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
-        raise AssertionError(
+        raise ASTSafetyError(
             "INTERNAL ERROR: Black produced code that is not equivalent to the"
             " source.  Please report a bug on "
             f"https://github.com/psf/black/issues.  This diff might be helpful: {log}"

@@ -1,4 +1,3 @@
-# flags: --preview
 
 
 # Warning! This file contains form feeds (ASCII 0x0C, often represented by \f or ^L).
@@ -203,6 +202,7 @@ def bar(a=1, b: bool = False):
 
 
 class Baz:
+
     def __init__(self):
         pass
 

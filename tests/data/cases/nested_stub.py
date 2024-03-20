@@ -1,4 +1,4 @@
-# flags: --pyi --preview
+# flags: --pyi
 import sys
 
 class Outer:
@@ -17,6 +17,18 @@ if sys.version_info > (3, 7):
         def function_definition(self): ...
         assignment = 1
     def f2(self) -> str: ...
+
+
+class TopLevel:
+    class Nested1:
+        foo: int
+        def bar(self): ...
+    field = 1
+
+    class Nested2:
+        def bar(self): ...
+        foo: int
+    field = 1
 
 # output
 
@@ -42,3 +54,16 @@ if sys.version_info > (3, 7):
         assignment = 1
 
     def f2(self) -> str: ...
+
+class TopLevel:
+    class Nested1:
+        foo: int
+        def bar(self): ...
+
+    field = 1
+
+    class Nested2:
+        def bar(self): ...
+        foo: int
+
+    field = 1

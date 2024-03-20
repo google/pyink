@@ -3,7 +3,18 @@ blib2to3 Node/Leaf transformation-related utility functions.
 """
 
 import sys
-from typing import Final, Generic, Iterator, List, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    Final,
+    Generic,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard
@@ -104,6 +115,7 @@ TEST_DESCENDANTS: Final = {
     syms.trailer,
     syms.term,
     syms.power,
+    syms.namedexpr_test,
 }
 TYPED_NAMES: Final = {syms.tname, syms.tname_star}
 ASSIGNMENTS: Final = {
@@ -121,6 +133,7 @@ ASSIGNMENTS: Final = {
     ">>=",
     "**=",
     "//=",
+    ":",
 }
 
 IMPLICIT_TUPLE: Final = {syms.testlist, syms.testlist_star_expr, syms.exprlist}
@@ -346,9 +359,7 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool, mode: Mode) -> str:  # no
 
             return NO
 
-        elif Preview.walrus_subscript in mode and (
-            t == token.COLONEQUAL or prev.type == token.COLONEQUAL
-        ):
+        elif t == token.COLONEQUAL or prev.type == token.COLONEQUAL:
             return SPACE
 
         elif not complex_subscript:
@@ -522,8 +533,8 @@ def first_leaf_of(node: LN) -> Optional[Leaf]:
 
 
 def is_arith_like(node: LN) -> bool:
-    """Whether node is an arithmetic or a binary arithmetic expression"""
-    return node.type in {
+  """Whether node is an arithmetic or a binary arithmetic expression"""
+  return node.type in {
         syms.arith_expr,
         syms.shift_expr,
         syms.xor_expr,
@@ -531,36 +542,38 @@ def is_arith_like(node: LN) -> bool:
     }
 
 
-def is_docstring(leaf: Leaf, is_pyink: bool) -> bool:
-    if leaf.type != token.STRING:
-        return False
+def is_docstring(leaf: Leaf, mode: Mode) -> bool:
+  if leaf.type != token.STRING:
+    return False
 
-    prefix = get_string_prefix(leaf.value)
-    if set(prefix).intersection("bBfF"):
-        return False
+  prefix = get_string_prefix(leaf.value)
+  if set(prefix).intersection("bBfF"):
+    return False
 
-    if prev_siblings_are(
-        leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
-    ):
-        return True
-
-    # Multiline docstring on the same line as the `def`.
-    if prev_siblings_are(leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]):
-        # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
-        # grammar. We're safe to return True without further checks.
-        return True
-
-    # Module docstring.
-    if (
-        is_pyink
-        and prev_siblings_are(leaf.parent, [None, syms.simple_stmt])
+  if (
+        Preview.unify_docstring_detection in mode
         and leaf.parent
+        and leaf.parent.type == syms.simple_stmt
+        and not leaf.parent.prev_sibling
         and leaf.parent.parent
         and leaf.parent.parent.type == syms.file_input
     ):
-        return True
+    return True
 
-    return False
+  if prev_siblings_are(
+        leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
+    ):
+    return True
+
+  # Multiline docstring on the same line as the `def`.
+  if prev_siblings_are(
+      leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]
+  ):
+    # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
+    # grammar. We're safe to return True without further checks.
+    return True
+
+  return False
 
 
 def is_empty_tuple(node: LN) -> bool:
@@ -742,8 +755,11 @@ def is_multiline_string(leaf: Leaf) -> bool:
     return has_triple_quotes(leaf.value) and "\n" in leaf.value
 
 
-def is_funcdef(node: Node) -> bool:
-    return node.type == syms.funcdef
+def is_parent_function_or_class(node: Node) -> bool:
+    assert node.type in {syms.suite, syms.simple_stmt}
+    assert node.parent is not None
+    # Note this works for suites / simple_stmts in async def as well
+    return node.parent.type in {syms.funcdef, syms.classdef}
 
 
 def is_function_or_class(node: Node) -> bool:
@@ -754,8 +770,8 @@ def is_stub_suite(node: Node, mode: Mode) -> bool:
     """Return True if `node` is a suite with a stub body."""
     if (
         node.parent is not None
-        and Preview.dummy_implementations in mode
-        and not is_function_or_class(node.parent)
+        and not mode.is_pyink
+        and not is_parent_function_or_class(node)
     ):
         return False
 
@@ -952,16 +968,21 @@ def is_number_token(nl: NL) -> TypeGuard[Leaf]:
     return nl.type == token.NUMBER
 
 
-def is_part_of_annotation(leaf: Leaf) -> bool:
-    """Returns whether this leaf is part of type annotations."""
+def get_annotation_type(leaf: Leaf) -> Literal["return", "param", None]:
+    """Returns the type of annotation this leaf is part of, if any."""
     ancestor = leaf.parent
     while ancestor is not None:
         if ancestor.prev_sibling and ancestor.prev_sibling.type == token.RARROW:
-            return True
+            return "return"
         if ancestor.parent and ancestor.parent.type == syms.tname:
-            return True
+            return "param"
         ancestor = ancestor.parent
-    return False
+    return None
+
+
+def is_part_of_annotation(leaf: Leaf) -> bool:
+    """Returns whether this leaf is part of a type annotation."""
+    return get_annotation_type(leaf) is not None
 
 
 def first_leaf(node: LN) -> Optional[Leaf]:

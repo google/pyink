@@ -1,4 +1,3 @@
-# flags: --preview
 from typing import NoReturn, Protocol, Union, overload
 
 class Empty:
@@ -57,6 +56,17 @@ if some_condition:
     ...
 
 if already_dummy: ...
+
+class AsyncCls:
+    async def async_method(self):
+        ...
+
+async def async_function(self):
+    ...
+
+@decorated
+async def async_function(self):
+    ...
 
 # output
 
@@ -121,3 +131,14 @@ if some_condition:
 
 if already_dummy:
     ...
+
+
+class AsyncCls:
+    async def async_method(self): ...
+
+
+async def async_function(self): ...
+
+
+@decorated
+async def async_function(self): ...

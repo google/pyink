@@ -1,4 +1,3 @@
-# flags: --preview
 long_kwargs_single_line = my_function(
     foo="test, this is a sample value",
     bar=some_long_value_name_foo_bar_baz if some_boolean_variable else some_fallback_value_foo_bar_baz,
@@ -66,6 +65,28 @@ def something():
         if flat
         else ValuesListIterable
     )
+
+
+def foo(wait: bool = True):
+    # This comment is two
+    # lines long
+
+    # This is only one
+    time.sleep(1) if wait else None
+    time.sleep(1) if wait else None
+
+    # With newline above
+    time.sleep(1) if wait else None
+    # Without newline above
+    time.sleep(1) if wait else None
+
+
+a = "".join(
+    (
+        "",  # comment
+        "" if True else "",
+    )
+)
 
 # output
 
@@ -159,3 +180,25 @@ def something():
         if named
         else FlatValuesListIterable if flat else ValuesListIterable
     )
+
+
+def foo(wait: bool = True):
+    # This comment is two
+    # lines long
+
+    # This is only one
+    time.sleep(1) if wait else None
+    time.sleep(1) if wait else None
+
+    # With newline above
+    time.sleep(1) if wait else None
+    # Without newline above
+    time.sleep(1) if wait else None
+
+
+a = "".join(
+    (
+        "",  # comment
+        "" if True else "",
+    )
+)

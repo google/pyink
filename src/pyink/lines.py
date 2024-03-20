@@ -26,7 +26,6 @@ from pyink.nodes import (
     TEST_DESCENDANTS,
     child_towards,
     is_docstring,
-    is_funcdef,
     is_import,
     is_multiline_string,
     is_one_sequence_between,
@@ -112,7 +111,7 @@ class Line:
             if self.mode.magic_trailing_comma:
                 if self.has_magic_trailing_comma(leaf):
                     self.magic_trailing_comma = leaf
-            elif self.has_magic_trailing_comma(leaf, ensure_removable=True):
+            elif self.has_magic_trailing_comma(leaf):
                 self.remove_trailing_comma()
         if not self.append_comment(leaf):
             self.leaves.append(leaf)
@@ -216,18 +215,23 @@ class Line:
         )
 
     @property
-    def is_triple_quoted_string(self) -> bool:
+    def _is_triple_quoted_string(self) -> bool:
         """Is the line a triple quoted string?"""
         if not self or self.leaves[0].type != token.STRING:
             return False
         value = self.leaves[0].value
         if value.startswith(('"""', "'''")):
             return True
-        if Preview.accept_raw_docstrings in self.mode and value.startswith(
-            ("r'''", 'r"""', "R'''", 'R"""')
-        ):
+        if value.startswith(("r'''", 'r"""', "R'''", 'R"""')):
             return True
         return False
+
+    @property
+    def is_docstring(self) -> bool:
+        """Is the line a docstring?"""
+        if Preview.unify_docstring_detection not in self.mode:
+            return self._is_triple_quoted_string
+        return bool(self) and is_docstring(self.leaves[0], self.mode)
 
     @property
     def is_chained_assignment(self) -> bool:
@@ -379,16 +383,11 @@ class Line:
     def contains_multiline_strings(self) -> bool:
         return any(is_multiline_string(leaf) for leaf in self.leaves)
 
-    def has_magic_trailing_comma(
-        self, closing: Leaf, ensure_removable: bool = False
-    ) -> bool:
+    def has_magic_trailing_comma(self, closing: Leaf) -> bool:
         """Return True if we have a magic trailing comma, that is when:
         - there's a trailing comma here
+        - it's not from single-element square bracket indexing
         - it's not a one-tuple
-        - it's not a single-element subscript
-        Additionally, if ensure_removable:
-        - it's not from square bracket indexing
-        (specifically, single-element square bracket indexing)
         """
         if not (
             closing.type in CLOSING_BRACKETS
@@ -412,6 +411,8 @@ class Line:
                     brackets=(token.LSQB, token.RSQB),
                 )
             ):
+                assert closing.prev_sibling is not None
+                assert closing.prev_sibling.type == syms.subscriptlist
                 return False
 
             return True
@@ -489,12 +490,13 @@ class Line:
 
             if subscript_start.type == syms.subscriptlist:
                 subscript_start = child_towards(subscript_start, leaf)
+
         return subscript_start is not None and any(
             n.type in TEST_DESCENDANTS for n in subscript_start.pre_order()
         )
 
     def enumerate_with_length(
-        self, reversed: bool = False
+        self, is_reversed: bool = False
     ) -> Iterator[Tuple[Index, Leaf, int]]:
         """Return an enumeration of leaves with their length.
 
@@ -502,7 +504,7 @@ class Line:
         """
         op = cast(
             Callable[[Sequence[Leaf]], Iterator[Tuple[Index, Leaf]]],
-            enumerate_reversed if reversed else enumerate,
+            enumerate_reversed if is_reversed else enumerate,
         )
         for index, leaf in op(self.leaves):
             length = len(leaf.prefix) + len(leaf.value)
@@ -600,26 +602,19 @@ class EmptyLineTracker:
         lines (two on module-level).
         """
         form_feed = (
-            Preview.allow_form_feeds in self.mode
-            and not current_line.depth
+            not current_line.depth
             and bool(current_line.leaves)
             and "\f\n" in current_line.leaves[0].prefix
         )
         before, after = self._maybe_empty_lines(current_line)
         previous_after = self.previous_block.after if self.previous_block else 0
-        before = (
-            # Black should not insert empty lines at the beginning
-            # of the file
-            0
-            if self.previous_line is None
-            else before - previous_after
-        )
+        before = max(0, before - previous_after)
         if (
-            Preview.module_docstring_newlines in current_line.mode
-            and self.previous_block
+            # Always have one empty line after a module docstring
+            self.previous_block
             and self.previous_block.previous_block is None
             and len(self.previous_block.original_line.leaves) == 1
-            and self.previous_block.original_line.is_triple_quoted_string
+            and self.previous_block.original_line.is_docstring
             and not (current_line.is_class or current_line.is_def)
         ):
             before = 1
@@ -650,10 +645,11 @@ class EmptyLineTracker:
         self.previous_block = block
         return block
 
-    def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
+    def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:  # noqa: C901
         max_allowed = 1
         if not current_line.depth:
             max_allowed = 1 if self.mode.is_pyi else 2
+
         if current_line.leaves:
             # Consume the first leaf's extra newlines.
             first_leaf = current_line.leaves[0]
@@ -666,22 +662,31 @@ class EmptyLineTracker:
         user_had_newline = bool(before)
         depth = current_line.depth
 
+        # Mutate self.previous_defs, remainder of this function should be pure
         previous_def = None
         while self.previous_defs and len(self.previous_defs[-1].depth) >= len(depth):
             previous_def = self.previous_defs.pop()
+        if current_line.is_def or current_line.is_class:
+            self.previous_defs.append(current_line)
+
+        if self.previous_line is None:
+            # Don't insert empty lines before the first line in the file.
+            return 0, 0
+
+        if current_line.is_docstring:
+            if self.previous_line.is_class:
+                return 0, 1
+            if self.previous_line.opens_block and self.previous_line.is_def:
+                return 0, 0
 
         if previous_def is not None:
             assert self.previous_line is not None
             if self.mode.is_pyi:
-                if depth and not current_line.is_def and self.previous_line.is_def:
+                if previous_def.is_class and not previous_def.is_stub_class:
+                    before = 1
+                elif depth and not current_line.is_def and self.previous_line.is_def:
                     # Empty lines between attributes and methods should be preserved.
                     before = 1 if user_had_newline else 0
-                elif (
-                    Preview.blank_line_after_nested_stub_class in self.mode
-                    and previous_def.is_class
-                    and not previous_def.is_stub_class
-                ):
-                    before = 1
                 elif depth:
                     before = 0
                 else:
@@ -715,13 +720,12 @@ class EmptyLineTracker:
             )
 
         if (
-            self.previous_line
-            and (
+            (
                 self.previous_line.is_import
                 or self.previous_line.is_fmt_pass_converted(
                     first_leaf_matches=is_import
                 )
-            )
+             )
             and not current_line.is_import
             and not (
                 # Should not add empty lines before a STANDALONE_COMMENT.
@@ -738,67 +742,26 @@ class EmptyLineTracker:
         ):
             return (before or 1), 0
 
-        if (
-            self.previous_line
-            and self.previous_line.is_class
-            and current_line.is_triple_quoted_string
-        ):
-            if Preview.no_blank_line_before_class_docstring in current_line.mode:
-                return 0, 1
-            return before, 1
-
-        if (
-            self.mode.is_pyink
-            and self.previous_line
-            and self.previous_line.is_class
-            and current_line.is_comment
-        ):
-            return before, 0
-
-        # In preview mode, always allow blank lines, except right before a function
-        # docstring
-        is_empty_first_line_ok = (
-            Preview.allow_empty_first_line_in_block in current_line.mode
-            and (
-                not is_docstring(current_line.leaves[0], is_pyink=self.mode.is_pyink)
-                or (
-                    self.previous_line
-                    and self.previous_line.leaves[0]
-                    and self.previous_line.leaves[0].parent
-                    and not is_funcdef(self.previous_line.leaves[0].parent)
-                )
-            )
-        )
-
-        if (
-            self.previous_line
-            and self.previous_line.opens_block
-            and not is_empty_first_line_ok
-        ):
-            return 0, 0
         return before, 0
 
     def _maybe_empty_lines_for_class_or_def(  # noqa: C901
         self, current_line: Line, before: int, user_had_newline: bool
     ) -> Tuple[int, int]:
-        if not current_line.is_decorator:
-            self.previous_defs.append(current_line)
-        if self.previous_line is None:
-            # Don't insert empty lines before the first line in the file.
-            return 0, 0
+        assert self.previous_line is not None
 
         if self.previous_line.is_decorator:
             if self.mode.is_pyi and current_line.is_stub_class:
                 # Insert an empty line after a decorated stub class
                 return 0, 1
-
             return 0, 0
 
         if len(self.previous_line.depth) < len(current_line.depth) and (
             (not self.mode.is_pyink and self.previous_line.is_class)
             or self.previous_line.is_def
         ):
-            return 0, 0
+            if self.mode.is_pyi:
+                return 0, 0
+            return 1 if user_had_newline else 0, 0
 
         comment_to_add_newlines: Optional[LinesBlock] = None
         if (
@@ -829,16 +792,10 @@ class EmptyLineTracker:
                     newlines = 0
                 else:
                     newlines = 1
-            # Remove case `self.previous_line.depth > current_line.depth` below when
-            # this becomes stable.
-            #
             # Don't inspect the previous line if it's part of the body of the previous
             # statement in the same level, we always want a blank line if there's
             # something with a body preceding.
-            elif (
-                Preview.blank_line_between_nested_and_def_stub_file in current_line.mode
-                and self.previous_line.depth > current_line.depth
-            ):
+            elif self.previous_line.depth > current_line.depth:
                 newlines = 1
             elif (
                 current_line.is_def or current_line.is_decorator
@@ -851,8 +808,6 @@ class EmptyLineTracker:
                     # Blank line between a block of functions (maybe with preceding
                     # decorators) and a block of non-functions
                     newlines = 1
-            elif len(self.previous_line.depth) > len(current_line.depth):
-                newlines = 1
             else:
                 newlines = 0
         else:
@@ -860,7 +815,7 @@ class EmptyLineTracker:
             # If a user has left no space after a dummy implementation, don't insert
             # new lines. This is useful for instance for @overload or Protocols.
             if (
-                Preview.dummy_implementations in self.mode
+                not self.mode.is_pyink
                 and self.previous_line.is_stub_def
                 and not user_had_newline
             ):
@@ -918,11 +873,10 @@ def is_line_short_enough(  # noqa: C901
     if not line_str:
         line_str = line_to_string(line)
 
-    width = str_width if Preview.respect_east_asian_width in mode else len
     if line.mode.is_pyink:
-        effective_length = width(line_str) - line.trailing_pragma_comment_length()
+        effective_length = str_width(line_str) - line.trailing_pragma_comment_length()
     else:
-        effective_length = width(line_str)
+        effective_length = str_width(line_str)
 
     if Preview.multiline_string_handling not in mode:
         return (
@@ -938,7 +892,7 @@ def is_line_short_enough(  # noqa: C901
         return effective_length <= mode.line_length
 
     first, *_, last = line_str.split("\n")
-    if width(first) > mode.line_length or width(last) > mode.line_length:
+    if str_width(first) > mode.line_length or str_width(last) > mode.line_length:
         return False
 
     # Traverse the AST to examine the context of the multiline string (MLS),
@@ -1078,11 +1032,7 @@ def can_omit_invisible_parens(
         return False
 
     if delimiter_count == 1:
-        if (
-            Preview.wrap_multiple_context_managers_in_parens in line.mode
-            and max_priority == COMMA_PRIORITY
-            and rhs.head.is_with_or_async_with_stmt
-        ):
+        if max_priority == COMMA_PRIORITY and rhs.head.is_with_or_async_with_stmt:
             # For two context manager with statements, the optional parentheses read
             # better. In this case, `rhs.body` is the context managers part of
             # the with statement. `rhs.head` is the `with (` part on the previous
