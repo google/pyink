@@ -4,6 +4,10 @@ All notable changes to Pyink are recorded here.
 
 ## Unreleased
 
+* Nothing notable unreleased.
+
+## 24.3.0
+
 This release is based on _Black_ v24.3.0.
 
 * Remove the previously deprecated CLI option `--pyink-lines`. This was replaced
