@@ -1,107 +1,10165 @@
-"""
-Summarize Black runs to users.
-"""
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-from click import style
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-from pyink.output import err, out
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
 
-class Changed(Enum):
-    NO = 0
-    CACHED = 1
-    YES = 2
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+zclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
 
 class NothingChanged(UserWarning):
     """Raised when reformatted code is the same as source."""
 
 
-@dataclass
-class Report:
-    """Provides a reformatting counter. Can be rendered with `str(report)`."""
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    check: bool = False
-    diff: bool = False
-    quiet: bool = False
-    verbose: bool = False
-    change_count: int = 0
-    same_count: int = 0
-    failure_count: int = 0
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    def done(self, src: Path, changed: Changed) -> None:
-        """Increment the counter for successful reformatting. Write out a message."""
-        if changed is Changed.YES:
-            reformatted = "would reformat" if self.check or self.diff else "reformatted"
-            if self.verbose or not self.quiet:
-                out(f"{reformatted} {src}")
-            self.change_count += 1
-        else:
-            if self.verbose:
-                if changed is Changed.NO:
-                    msg = f"{src} already well formatted, good job."
-                else:
-                    msg = f"{src} wasn't modified on disk since last run."
-                out(msg, bold=False)
-            self.same_count += 1
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    def failed(self, src: Path, message: str) -> None:
-        """Increment the counter for failed reformatting. Write out a message."""
-        err(f"error: cannot format {src}: {message}")
-        self.failure_count += 1
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    def path_ignored(self, path: Path, message: str) -> None:
-        if self.verbose:
-            out(f"{path} ignored: {message}", bold=False)
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    @property
-    def return_code(self) -> int:
-        """Return the exit code that the app should use.
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-        This considers the current state of changed files and failures:
-        - if there were any failures, return 123;
-        - if any files were changed and --check is being used, return 1;
-        - otherwise return 0.
-        """
-        # According to http://tldp.org/LDP/abs/html/exitcodes.html starting with
-        # 126 we have special return codes reserved by the shell.
-        if self.failure_count:
-            return 123
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-        elif self.change_count and self.check:
-            return 1
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-        return 0
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-    def __str__(self) -> str:
-        """Render a color report of the current state.
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-        Use `click.unstyle` to remove colors.
-        """
-        if self.check or self.diff:
-            reformatted = "would be reformatted"
-            unchanged = "would be left unchanged"
-            failed = "would fail to reformat"
-        else:
-            reformatted = "reformatted"
-            unchanged = "left unchanged"
-            failed = "failed to reformat"
-        report = []
-        if self.change_count:
-            s = "s" if self.change_count > 1 else ""
-            report.append(
-                style(f"{self.change_count} file{s} ", bold=True, fg="blue")
-                + style(f"{reformatted}", bold=True)
-            )
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
 
-        if self.same_count:
-            s = "s" if self.same_count > 1 else ""
-            report.append(style(f"{self.same_count} file{s} ", fg="blue") + unchanged)
-        if self.failure_count:
-            s = "s" if self.failure_count > 1 else ""
-            report.append(style(f"{self.failure_count} file{s} {failed}", fg="red"))
-        return ", ".join(report) + "."
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+2class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+@class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+`class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+`class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+qclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+qclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+jclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+'class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+@class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+xclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+2class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+3class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+;class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+;class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+#class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+/class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+xclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+#class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+2class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+6class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+2class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+3class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+0class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+-class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+`class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+`class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+vclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+kclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+wclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+[class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+]class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+Tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+mclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+bclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+hclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+:class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+>class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+1class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+yclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+_class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+cclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+sclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+{class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+aclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+lclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+}class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+fclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+gclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+=class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+dclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+uclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+,class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+jclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+iclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+nclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+(class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+eclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+pclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+oclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+rclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+tclass NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+)class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
++class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+ class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+.class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+"class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+
+
+class NothingChanged(UserWarning):
+    """Raised when reformatted code is the same as source."""
+

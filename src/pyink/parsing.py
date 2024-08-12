@@ -21,6 +21,7 @@ class InvalidInput(ValueError):
     """Raised when input source code fails all parse attempts."""
 
 
+
 def get_grammars(target_versions: Set[TargetVersion]) -> List[Grammar]:
     if not target_versions:
         # No target_version specified, so try all grammars.
