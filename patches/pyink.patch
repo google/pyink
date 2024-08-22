@@ -395,6 +395,52 @@
      (917760, 917999, 0),
 -]
 +)
+--- a/handle_ipynb_magics.py
++++ b/handle_ipynb_magics.py
+@@ -6,7 +6,6 @@ import dataclasses
+ import secrets
+ import sys
+ from functools import lru_cache
+-from importlib.util import find_spec
+ from typing import Dict, List, Optional, Tuple
+ 
+ if sys.version_info >= (3, 10):
+@@ -14,7 +13,6 @@ if sys.version_info >= (3, 10):
+ else:
+     from typing_extensions import TypeGuard
+ 
+-from pyink.output import out
+ from pyink.report import NothingChanged
+ 
+ TRANSFORMED_MAGICS = frozenset((
+@@ -52,16 +50,8 @@ class Replacement:
+ 
+ @lru_cache
+ def jupyter_dependencies_are_installed(*, warn: bool) -> bool:
+-    installed = (
+-        find_spec("tokenize_rt") is not None and find_spec("IPython") is not None
+-    )
+-    if not installed and warn:
+-        msg = (
+-            "Skipping .ipynb files as Jupyter dependencies are not installed.\n"
+-            'You can fix this by running ``pip install "black[jupyter]"``'
+-        )
+-        out(msg)
+-    return installed
++    # Jupyter dependencies are in Google3 ensured with Blaze build rules.
++    return True
+ 
+ 
+ def remove_trailing_semicolon(src: str) -> Tuple[str, bool]:
+@@ -145,7 +135,7 @@ def mask_cell(src: str) -> Tuple[str, Li
+         # Syntax is fine, nothing to mask, early return.
+         return src, replacements
+ 
+-    from IPython.core.inputtransformer2 import TransformerManager
++    from pyink.ipython.inputtransformer2 import TransformerManager
+ 
+     transformer_manager = TransformerManager()
+     transformed = transformer_manager.transform_cell(src)
 --- a/linegen.py
 +++ b/linegen.py
 @@ -9,6 +9,11 @@ from enum import Enum, auto
@@ -1406,6 +1452,19 @@
      def test_get_sources_with_stdin_filename_and_force_exclude_and_symlink(
          self,
      ) -> None:
+--- a/tests/test_ipynb.py
++++ b/tests/test_ipynb.py
+@@ -21,9 +21,8 @@ from pyink.handle_ipynb_magics import ju
+ from pyink.tests.util import DATA_DIR, get_case_path, read_jupyter_notebook
+ 
+ with contextlib.suppress(ModuleNotFoundError):
+-    import IPython
++    import pyink.ipython as IPython
+ pytestmark = pytest.mark.jupyter
+-pytest.importorskip("IPython", reason="IPython is an optional dependency")
+ pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
+ 
+ JUPYTER_MODE = Mode(is_ipynb=True)
 --- a/tests/util.py
 +++ b/tests/util.py
 @@ -271,6 +271,8 @@ def get_flags_parser() -> argparse.Argum

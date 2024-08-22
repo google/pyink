@@ -21,9 +21,8 @@ from pyink.handle_ipynb_magics import jupyter_dependencies_are_installed
 from tests.util import DATA_DIR, get_case_path, read_jupyter_notebook
 
 with contextlib.suppress(ModuleNotFoundError):
-    import IPython
+    import pyink.ipython as IPython
 pytestmark = pytest.mark.jupyter
-pytest.importorskip("IPython", reason="IPython is an optional dependency")
 pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
 
 JUPYTER_MODE = Mode(is_ipynb=True)
