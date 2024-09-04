@@ -42,7 +42,7 @@ dependencies = [
   "platformdirs>=2",
   "tomli>=1.1.0; python_version < '3.11'",
   "typing_extensions>=4.0.1; python_version < '3.11'",
-  "black==24.3.0",
+  "black==24.8.0",
 ]
 dynamic = ["version"]
 
@@ -59,7 +59,8 @@ pyink = "pyink:patched_main"
 
 [project.urls]
 Changelog = "https://github.com/google/pyink/blob/pyink/CHANGES.md"
-Homepage = "https://github.com/google/pyink"
+Repository = "https://github.com/google/pyink"
+Issues = "https://github.com/google/pyink/issues"
 
 [tool.hatch.version]
 source = "vcs"

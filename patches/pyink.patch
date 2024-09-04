@@ -49,18 +49,15 @@
  from pyink.mode import Mode as Mode  # re-exported
 -from pyink.mode import Preview, TargetVersion, supports_feature
 +from pyink.mode import Preview, QuoteStyle, TargetVersion, supports_feature
- from pyink.nodes import (
-     STARS,
-     is_number_token,
-@@ -90,12 +91,11 @@ from pyink.ranges import (
+ from pyink.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
+ from pyink.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
+ from pyink.parsing import (  # noqa F401
+@@ -90,9 +91,8 @@ from pyink.ranges import (
      parse_line_ranges,
      sanitized_lines,
  )
 +from pyink import ink
  from pyink.report import Changed, NothingChanged, Report
- from pyink.trans import iter_fexpr_spans
- 
- from google3.devtools.python.pyformat import import_sorting
 -from blib2to3.pgen2 import token
 -from blib2to3.pytree import Leaf, Node
  
@@ -471,17 +468,6 @@
          yield complete_line
  
      def visit_default(self, node: LN) -> Iterator[Line]:
-@@ -156,7 +182,9 @@ class LineGenerator(Visitor[Line]):
-                 node.prefix = ""
-             if self.mode.string_normalization and node.type == token.STRING:
-                 node.value = normalize_string_prefix(node.value)
--                node.value = normalize_string_quotes(node.value)
-+                node.value = normalize_string_quotes(
-+                    node.value, preferred_quote=self.mode.preferred_quote
-+                )
-             if node.type == token.NUMBER:
-                 normalize_numeric_literal(node)
-             if node.type not in WHITESPACE:
 @@ -166,26 +194,27 @@ class LineGenerator(Visitor[Line]):
      def visit_test(self, node: Node) -> Iterator[Line]:
          """Visit an `x if y else z` test"""
@@ -562,15 +548,15 @@
 +                yield from self.line(_DEDENT)
  
          else:
--            if not node.parent or not is_stub_suite(node.parent):
+-            if node.parent and is_stub_suite(node.parent):
 +            if (
-+                not (self.mode.is_pyi or not self.mode.is_pyink)
-+                or not node.parent
-+                or not is_stub_suite(node.parent, self.mode)
++                (self.mode.is_pyi or not self.mode.is_pyink)
++                and node.parent
++                and is_stub_suite(node.parent, self.mode)
 +            ):
-                 yield from self.line()
-             yield from self.visit_default(node)
- 
+                 node.prefix = ""
+                 yield from self.visit_default(node)
+                 return
 @@ -414,7 +453,10 @@ class LineGenerator(Visitor[Line]):
          yield from self.visit_default(node)
  
@@ -584,9 +570,9 @@
  
          if is_docstring(leaf, self.mode) and not re.search(r"\\\s*\n", leaf.value):
 @@ -428,7 +470,9 @@ class LineGenerator(Visitor[Line]):
-                 # formatting as visit_default() is called *after*. To avoid a
-                 # situation where this function formats a docstring differently on
-                 # the second pass, normalize it early.
+                 # see padding logic below), there's a possibility for unstable
+                 # formatting. To avoid a situation where this function formats a
+                 # docstring differently on the second pass, normalize it early.
 -                docstring = normalize_string_quotes(docstring)
 +                docstring = normalize_string_quotes(
 +                    docstring, preferred_quote=self.mode.preferred_quote
@@ -628,6 +614,17 @@
          self.visit_del_stmt = partial(v, keywords=Ø, parens={"del"})
          self.visit_async_funcdef = self.visit_async_stmt
          self.visit_decorated = self.visit_decorators
+@@ -499,7 +556,9 @@ def visit_STRING(
+ 
+         if self.mode.string_normalization and leaf.type == token.STRING:
+             leaf.value = normalize_string_prefix(leaf.value)
+-            leaf.value = normalize_string_quotes(leaf.value)
++            leaf.value = normalize_string_quotes(
++                leaf.value, preferred_quote=self.mode.preferred_quote
++            )
+         yield from self.visit_default(leaf)
+ 
+     def visit_NUMBER(self, leaf: Leaf) -> Iterator[Line]:
 @@ -577,10 +628,19 @@ def transform_line(
  
      ll = mode.line_length
@@ -1012,70 +1009,6 @@
 +            return Quote.DOUBLE
 --- a/nodes.py
 +++ b/nodes.py
-@@ -532,8 +532,8 @@ def first_leaf_of(node: LN) -> Optional[
- 
- 
- def is_arith_like(node: LN) -> bool:
--    """Whether node is an arithmetic or a binary arithmetic expression"""
--    return node.type in {
-+  """Whether node is an arithmetic or a binary arithmetic expression"""
-+  return node.type in {
-         syms.arith_expr,
-         syms.shift_expr,
-         syms.xor_expr,
-@@ -542,14 +542,14 @@ def is_arith_like(node: LN) -> bool:
- 
- 
- def is_docstring(leaf: Leaf, mode: Mode) -> bool:
--    if leaf.type != token.STRING:
--        return False
-+  if leaf.type != token.STRING:
-+    return False
- 
--    prefix = get_string_prefix(leaf.value)
--    if set(prefix).intersection("bBfF"):
--        return False
-+  prefix = get_string_prefix(leaf.value)
-+  if set(prefix).intersection("bBfF"):
-+    return False
- 
--    if (
-+  if (
-         Preview.unify_docstring_detection in mode
-         and leaf.parent
-         and leaf.parent.type == syms.simple_stmt
-@@ -557,20 +557,22 @@ def is_docstring(leaf: Leaf, mode: Mode)
-         and leaf.parent.parent
-         and leaf.parent.parent.type == syms.file_input
-     ):
--        return True
-+    return True
- 
--    if prev_siblings_are(
-+  if prev_siblings_are(
-         leaf.parent, [None, token.NEWLINE, token.INDENT, syms.simple_stmt]
-     ):
--        return True
-+    return True
- 
--    # Multiline docstring on the same line as the `def`.
--    if prev_siblings_are(leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]):
--        # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
--        # grammar. We're safe to return True without further checks.
--        return True
-+  # Multiline docstring on the same line as the `def`.
-+  if prev_siblings_are(
-+      leaf.parent, [syms.parameters, token.COLON, syms.simple_stmt]
-+  ):
-+    # `syms.parameters` is only used in funcdefs and async_funcdefs in the Python
-+    # grammar. We're safe to return True without further checks.
-+    return True
- 
--    return False
-+  return False
- 
- 
- def is_empty_tuple(node: LN) -> bool:
 @@ -763,9 +765,13 @@ def is_function_or_class(node: Node) ->
      return node.type in {syms.funcdef, syms.classdef, syms.async_funcdef}
  
@@ -1094,7 +1027,7 @@
      # If there is a comment, we want to keep it.
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -1,51 +1,23 @@
+@@ -1,52 +1,23 @@
 -# Example configuration for Black.
 -
 -# NOTE: you have to use single-quoted strings in TOML for regular expressions.
@@ -1112,9 +1045,10 @@
 -extend-exclude = '''
 -/(
 -  # The following are specific to Black, you probably don't want those.
--  tests/data
--  | profiling
--)/
+-  tests/data/
+-  | profiling/
+-  | scripts/generate_schema.py  # Uses match syntax
+-)
 -'''
 -# We use the unstable style for formatting Black itself. If you
 -# want bug-free formatting, you should keep this off. If you want
@@ -1155,11 +1089,11 @@
  classifiers = [
    "Development Status :: 5 - Production/Stable",
    "Environment :: Console",
-@@ -70,51 +42,34 @@ dependencies = [
+@@ -70,53 +42,35 @@ dependencies = [
    "platformdirs>=2",
    "tomli>=1.1.0; python_version < '3.11'",
    "typing_extensions>=4.0.1; python_version < '3.11'",
-+  "black==24.3.0",
++  "black==24.8.0",
  ]
 -dynamic = ["readme", "version"]
 +dynamic = ["version"]
@@ -1185,8 +1119,10 @@
 +pyink = "pyink:patched_main"
  
  [project.urls]
+-Documentation = "https://black.readthedocs.io/"
 -Changelog = "https://github.com/psf/black/blob/main/CHANGES.md"
--Homepage = "https://github.com/psf/black"
+-Repository = "https://github.com/psf/black"
+-Issues = "https://github.com/psf/black/issues"
 -
 -[tool.hatch.metadata.hooks.fancy-pypi-readme]
 -content-type = "text/markdown"
@@ -1195,7 +1131,8 @@
 -  { path = "CHANGES.md" },
 -]
 +Changelog = "https://github.com/google/pyink/blob/pyink/CHANGES.md"
-+Homepage = "https://github.com/google/pyink"
++Repository = "https://github.com/google/pyink"
++Issues = "https://github.com/google/pyink/issues"
  
  [tool.hatch.version]
  source = "vcs"
@@ -1261,7 +1198,7 @@
 --- a/strings.py
 +++ b/strings.py
 @@ -8,6 +8,7 @@ from functools import lru_cache
- from typing import Final, List, Match, Pattern
+ from typing import Final, List, Match, Pattern, Tuple
  
  from pyink._width_table import WIDTH_TABLE
 +from pyink.mode import Quote
@@ -1279,8 +1216,8 @@
 +
 +    For three quotes strings, always use double-quote.
  
-     Adds or removes backslashes as appropriate. Doesn't parse and fix
-     strings nested in f-strings.
+     Adds or removes backslashes as appropriate.
+     """
 @@ -234,8 +237,8 @@ def normalize_string_quotes(s: str) -> s
      if new_escape_count > orig_escape_count:
          return s  # Do not introduce more escaping
@@ -1302,27 +1239,6 @@
 +pyink = false
 --- a/tests/test_black.py
 +++ b/tests/test_black.py
-@@ -1666,9 +1666,9 @@ class BlackTestCase(BlackBaseTestCase):
-             src_dir.mkdir()
- 
-             root_pyproject = root / "pyproject.toml"
--            root_pyproject.write_text("[tool.black]", encoding="utf-8")
-+            root_pyproject.write_text("[tool.pyink]", encoding="utf-8")
-             src_pyproject = src_dir / "pyproject.toml"
--            src_pyproject.write_text("[tool.black]", encoding="utf-8")
-+            src_pyproject.write_text("[tool.pyink]", encoding="utf-8")
-             src_python = src_dir / "foo.py"
-             src_python.touch()
- 
-@@ -1699,7 +1699,7 @@ class BlackTestCase(BlackBaseTestCase):
- 
-             src_sub_python = src_sub / "bar.py"
- 
--            # we skip src_sub_pyproject since it is missing the [tool.black] section
-+            # we skip src_sub_pyproject since it is missing the [tool.pyink] section
-             self.assertEqual(
-                 pyink.find_project_root((src_sub_python,)),
-                 (src_dir.resolve(), "pyproject.toml"),
 @@ -2772,6 +2772,82 @@ class TestFileCollection:
              stdin_filename=stdin_filename,
          )
@@ -1432,7 +1348,7 @@
  skip_install = True
  commands =
      pip install -e .
--    black --check {toxinidir}/src {toxinidir}/tests
+-    black --check {toxinidir}/src {toxinidir}/tests {toxinidir}/docs {toxinidir}/scripts
 -
 -[testenv:generate_schema]
 -setenv = PYTHONWARNDEFAULTENCODING =
@@ -1441,7 +1357,7 @@
 -commands =
 -    pip install -e .
 -    python {toxinidir}/scripts/generate_schema.py --outfile {toxinidir}/src/black/resources/black.schema.json
-+    pyink --check {toxinidir}/src {toxinidir}/tests
++    pyink --check {toxinidir}/src {toxinidir}/tests {toxinidir}/docs {toxinidir}/scripts
 --- a/trans.py
 +++ b/trans.py
 @@ -28,8 +28,8 @@ from typing import (

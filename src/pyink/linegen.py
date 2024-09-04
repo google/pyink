@@ -43,6 +43,7 @@ from pyink.nodes import (
     WHITESPACE,
     Visitor,
     ensure_visible,
+    fstring_to_string,
     get_annotation_type,
     is_arith_like,
     is_async_stmt_or_funcdef,
@@ -178,13 +179,6 @@ class LineGenerator(Visitor[Line]):
 
             if any_open_brackets:
                 node.prefix = ""
-            if self.mode.string_normalization and node.type == token.STRING:
-                node.value = normalize_string_prefix(node.value)
-                node.value = normalize_string_quotes(
-                    node.value, preferred_quote=self.mode.preferred_quote
-                )
-            if node.type == token.NUMBER:
-                normalize_numeric_literal(node)
             if node.type not in WHITESPACE:
                 self.current_line.append(node)
         yield from super().visit_default(node)
@@ -349,11 +343,14 @@ class LineGenerator(Visitor[Line]):
 
         else:
             if (
-                not (self.mode.is_pyi or not self.mode.is_pyink)
-                or not node.parent
-                or not is_stub_suite(node.parent, self.mode)
+                (self.mode.is_pyi or not self.mode.is_pyink)
+                and node.parent
+                and is_stub_suite(node.parent, self.mode)
             ):
-                yield from self.line()
+                node.prefix = ""
+                yield from self.visit_default(node)
+                return
+            yield from self.line()
             yield from self.visit_default(node)
 
     def visit_async_stmt(self, node: Node) -> Iterator[Line]:
@@ -462,12 +459,11 @@ class LineGenerator(Visitor[Line]):
             # indentation of those changes the AST representation of the code.
             if self.mode.string_normalization:
                 docstring = normalize_string_prefix(leaf.value)
-                # visit_default() does handle string normalization for us, but
-                # since this method acts differently depending on quote style (ex.
+                # We handle string normalization at the end of this method, but since
+                # what we do right now acts differently depending on quote style (ex.
                 # see padding logic below), there's a possibility for unstable
-                # formatting as visit_default() is called *after*. To avoid a
-                # situation where this function formats a docstring differently on
-                # the second pass, normalize it early.
+                # formatting. To avoid a situation where this function formats a
+                # docstring differently on the second pass, normalize it early.
                 docstring = normalize_string_quotes(
                     docstring, preferred_quote=self.mode.preferred_quote
                 )
@@ -549,7 +545,64 @@ class LineGenerator(Visitor[Line]):
             else:
                 leaf.value = prefix + quote + docstring + quote
 
+        if self.mode.string_normalization and leaf.type == token.STRING:
+            leaf.value = normalize_string_prefix(leaf.value)
+            leaf.value = normalize_string_quotes(
+                leaf.value, preferred_quote=self.mode.preferred_quote
+            )
         yield from self.visit_default(leaf)
+
+    def visit_NUMBER(self, leaf: Leaf) -> Iterator[Line]:
+        normalize_numeric_literal(leaf)
+        yield from self.visit_default(leaf)
+
+    def visit_fstring(self, node: Node) -> Iterator[Line]:
+        # currently we don't want to format and split f-strings at all.
+        string_leaf = fstring_to_string(node)
+        node.replace(string_leaf)
+        if "\\" in string_leaf.value and any(
+            "\\" in str(child)
+            for child in node.children
+            if child.type == syms.fstring_replacement_field
+        ):
+            # string normalization doesn't account for nested quotes,
+            # causing breakages. skip normalization when nested quotes exist
+            yield from self.visit_default(string_leaf)
+            return
+        yield from self.visit_STRING(string_leaf)
+
+        # TODO: Uncomment Implementation to format f-string children
+        # fstring_start = node.children[0]
+        # fstring_end = node.children[-1]
+        # assert isinstance(fstring_start, Leaf)
+        # assert isinstance(fstring_end, Leaf)
+
+        # quote_char = fstring_end.value[0]
+        # quote_idx = fstring_start.value.index(quote_char)
+        # prefix, quote = (
+        #     fstring_start.value[:quote_idx],
+        #     fstring_start.value[quote_idx:]
+        # )
+
+        # if not is_docstring(node, self.mode):
+        #     prefix = normalize_string_prefix(prefix)
+
+        # assert quote == fstring_end.value
+
+        # is_raw_fstring = "r" in prefix or "R" in prefix
+        # middles = [
+        #     leaf
+        #     for leaf in node.leaves()
+        #     if leaf.type == token.FSTRING_MIDDLE
+        # ]
+
+        # if self.mode.string_normalization:
+        #     middles, quote = normalize_fstring_quotes(quote, middles, is_raw_fstring)
+
+        # fstring_start.value = prefix + quote
+        # fstring_end.value = quote
+
+        # yield from self.visit_default(node)
 
     def __post_init__(self) -> None:
         """You are in a twisty little maze of passages."""
@@ -1369,6 +1422,16 @@ def normalize_invisible_parens(  # noqa: C901
                 child, parens_after={"case"}, mode=mode, features=features
             )
 
+        # Add parentheses around if guards in case blocks
+        if (
+            isinstance(child, Node)
+            and child.type == syms.guard
+            and Preview.parens_for_long_if_clauses_in_case_block in mode
+        ):
+            normalize_invisible_parens(
+                child, parens_after={"if"}, mode=mode, features=features
+            )
+
         # Add parentheses around long tuple unpacking in assignments.
         if (
             index == 0
@@ -1424,7 +1487,7 @@ def normalize_invisible_parens(  # noqa: C901
                 # of case will be not parsed as a Python keyword.
                 break
 
-            elif not (isinstance(child, Leaf) and is_multiline_string(child)):
+            elif not is_multiline_string(child):
                 wrap_in_parentheses(node, child, visible=False)
 
         comma_check = child.type == token.COMMA

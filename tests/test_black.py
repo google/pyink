@@ -263,6 +263,21 @@ class BlackTestCase(BlackBaseTestCase):
             versions = pyink.detect_target_versions(root)
             self.assertIn(pyink.TargetVersion.PY312, versions)
 
+    def test_pep_696_version_detection(self) -> None:
+        source, _ = read_data("cases", "type_param_defaults")
+        samples = [
+            source,
+            "type X[T=int] = float",
+            "type X[T:int=int]=int",
+            "type X[*Ts=int]=int",
+            "type X[*Ts=*int]=int",
+            "type X[**P=int]=int",
+        ]
+        for sample in samples:
+            root = pyink.lib2to3_parse(sample)
+            features = pyink.get_features_used(root)
+            self.assertIn(pyink.Feature.TYPE_PARAM_DEFAULTS, features)
+
     def test_expression_ff(self) -> None:
         source, expected = read_data("cases", "expression.py")
         tmp_file = Path(pyink.dump_to_file(source))
@@ -343,12 +358,11 @@ class BlackTestCase(BlackBaseTestCase):
         features = pyink.get_features_used(root)
         self.assertNotIn(pyink.Feature.DEBUG_F_STRINGS, features)
 
-        # We don't yet support feature version detection in nested f-strings
         root = pyink.lib2to3_parse(
             """f"heard a rumour that { f'{1+1=}' } ... seems like it could be true" """
         )
         features = pyink.get_features_used(root)
-        self.assertNotIn(pyink.Feature.DEBUG_F_STRINGS, features)
+        self.assertIn(pyink.Feature.DEBUG_F_STRINGS, features)
 
     @patch("pyink.dump_to_file", dump_to_stderr)
     def test_string_quotes(self) -> None:
@@ -474,20 +488,8 @@ class BlackTestCase(BlackBaseTestCase):
         # running from CLI, but fails when running the tests because cwd is different
         project_root = Path(THIS_DIR / "data" / "nested_gitignore_tests")
         working_directory = project_root / "root"
-        target_abspath = working_directory / "child"
-        target_contents = list(target_abspath.iterdir())
 
-        def mock_n_calls(responses: List[bool]) -> Callable[[], bool]:
-            def _mocked_calls() -> bool:
-                if responses:
-                    return responses.pop(0)
-                return False
-
-            return _mocked_calls
-
-        with patch("pathlib.Path.iterdir", return_value=target_contents), patch(
-            "pathlib.Path.resolve", return_value=target_abspath
-        ), patch("pathlib.Path.is_dir", side_effect=mock_n_calls([True])):
+        with change_directory(working_directory):
             # Note that the root folder (project_root) isn't the folder
             # named "root" (aka working_directory)
             report = MagicMock(verbose=True)
@@ -1544,16 +1546,34 @@ class BlackTestCase(BlackBaseTestCase):
         for version, expected in [
             ("3.6", [TargetVersion.PY36]),
             ("3.11.0rc1", [TargetVersion.PY311]),
-            (">=3.10", [TargetVersion.PY310, TargetVersion.PY311, TargetVersion.PY312]),
+            (
+                ">=3.10",
+                [
+                    TargetVersion.PY310,
+                    TargetVersion.PY311,
+                    TargetVersion.PY312,
+                    TargetVersion.PY313,
+                ],
+            ),
             (
                 ">=3.10.6",
-                [TargetVersion.PY310, TargetVersion.PY311, TargetVersion.PY312],
+                [
+                    TargetVersion.PY310,
+                    TargetVersion.PY311,
+                    TargetVersion.PY312,
+                    TargetVersion.PY313,
+                ],
             ),
             ("<3.6", [TargetVersion.PY33, TargetVersion.PY34, TargetVersion.PY35]),
             (">3.7,<3.10", [TargetVersion.PY38, TargetVersion.PY39]),
             (
                 ">3.7,!=3.8,!=3.9",
-                [TargetVersion.PY310, TargetVersion.PY311, TargetVersion.PY312],
+                [
+                    TargetVersion.PY310,
+                    TargetVersion.PY311,
+                    TargetVersion.PY312,
+                    TargetVersion.PY313,
+                ],
             ),
             (
                 "> 3.9.4, != 3.10.3",
@@ -1562,6 +1582,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY310,
                     TargetVersion.PY311,
                     TargetVersion.PY312,
+                    TargetVersion.PY313,
                 ],
             ),
             (
@@ -1575,6 +1596,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY310,
                     TargetVersion.PY311,
                     TargetVersion.PY312,
+                    TargetVersion.PY313,
                 ],
             ),
             (
@@ -1590,6 +1612,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY310,
                     TargetVersion.PY311,
                     TargetVersion.PY312,
+                    TargetVersion.PY313,
                 ],
             ),
             ("==3.8.*", [TargetVersion.PY38]),
@@ -2514,6 +2537,12 @@ class TestFileCollection:
         expected = [target / "b.py"]
         assert_collected_sources([target], expected, root=root)
 
+    def test_gitignore_that_ignores_directory(self) -> None:
+        # If gitignore with a directory is in root
+        root = Path(DATA_DIR, "ignore_directory_gitignore_tests")
+        expected = [root / "z.py"]
+        assert_collected_sources([root], expected, root=root)
+
     def test_empty_include(self) -> None:
         path = DATA_DIR / "include_exclude_tests"
         src = [path]
@@ -2692,11 +2721,19 @@ class TestFileCollection:
     def test_get_sources_with_stdin_symlink_outside_root(
         self,
     ) -> None:
-        path = THIS_DIR / "data" / "include_exclude_tests"
-        stdin_filename = str(path / "b/exclude/a.py")
-        outside_root_symlink = Path("/target_directory/a.py")
-        root = Path("target_dir/").resolve().absolute()
-        with patch("pathlib.Path.resolve", return_value=outside_root_symlink):
+        with TemporaryDirectory() as tempdir:
+            tmp = Path(tempdir).resolve()
+
+            root = tmp / "root"
+            root.mkdir()
+            (root / "pyproject.toml").write_text("[tool.pyink]", encoding="utf-8")
+
+            target = tmp / "outside_root" / "a.py"
+            target.parent.mkdir()
+            target.write_text("print('hello')", encoding="utf-8")
+            (root / "a.py").symlink_to(target)
+
+            stdin_filename = str(root / "a.py")
             assert_collected_sources(
                 root=root,
                 src=["-"],
@@ -2984,6 +3021,22 @@ class TestASTSafety(BlackBaseTestCase):
                 """docstring"""
             ''',
         )
+        self.check_ast_equivalence(
+            """
+            if __name__ == "__main__":
+                "  docstring-like  "
+            """,
+            '''
+            if __name__ == "__main__":
+                """docstring-like"""
+            ''',
+        )
+        self.check_ast_equivalence(r'def f(): r" \n "', r'def f(): "\\n"')
+        self.check_ast_equivalence('try: pass\nexcept: " x "', 'try: pass\nexcept: "x"')
+
+        self.check_ast_equivalence(
+            'def foo(): return " x "', 'def foo(): return "x"', should_fail=True
+        )
 
     def test_assert_equivalent_fstring(self) -> None:
         major, minor = sys.version_info[:2]
@@ -3013,7 +3066,7 @@ class TestASTSafety(BlackBaseTestCase):
 
 
 try:
-    with open(pyink.__file__, "r", encoding="utf-8") as _bf:
+    with open(pyink.__file__, encoding="utf-8") as _bf:
         black_source_lines = _bf.readlines()
 except UnicodeDecodeError:
     if not pyink.COMPILED:
