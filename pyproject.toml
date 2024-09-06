@@ -57,6 +57,9 @@ jupyter = [
 [project.scripts]
 pyink = "pyink:patched_main"
 
+[project.entry-points."validate_pyproject.tool_schema"]
+pyink = "pyink.schema:get_schema"
+
 [project.urls]
 Changelog = "https://github.com/google/pyink/blob/pyink/CHANGES.md"
 Repository = "https://github.com/google/pyink"

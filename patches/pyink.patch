@@ -1089,7 +1089,7 @@
  classifiers = [
    "Development Status :: 5 - Production/Stable",
    "Environment :: Console",
-@@ -70,53 +42,35 @@ dependencies = [
+@@ -70,53 +42,38 @@ dependencies = [
    "platformdirs>=2",
    "tomli>=1.1.0; python_version < '3.11'",
    "typing_extensions>=4.0.1; python_version < '3.11'",
@@ -1113,10 +1113,11 @@
  [project.scripts]
 -black = "black:patched_main"
 -blackd = "blackd:patched_main [d]"
--
--[project.entry-points."validate_pyproject.tool_schema"]
--black = "black.schema:get_schema"
 +pyink = "pyink:patched_main"
+
+ [project.entry-points."validate_pyproject.tool_schema"]
+-black = "black.schema:get_schema"
++pyink = "pyink.schema:get_schema"
  
  [project.urls]
 -Documentation = "https://black.readthedocs.io/"
@@ -1195,6 +1196,27 @@
 -[[tool.mypy.overrides]]
 -module = ["tests.data.*"]
 -ignore_errors = true
+--- a/resources/pyink.schema.json
++++ b/resources/pyink.schema.json
+@@ -1,7 +1,7 @@
+ {
+   "$schema": "http://json-schema.org/draft-07/schema#",
+-  "$id": "https://github.com/psf/black/blob/main/black/resources/black.schema.json",
+-  "$comment": "tool.black table in pyproject.toml",
++  "$id": "https://github.com/google/pyink/blob/pyink/src/pyink/resources/pyink.schema.json",
++  "$comment": "tool.pyink table in pyproject.toml",
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+@@ -12,7 +12,7 @@
+     "line-length": {
+       "type": "integer",
+       "description": "How many characters per line to allow.",
+-      "default": 88
++      "default": 80
+     },
+     "target-version": {
+       "type": "array",
 --- a/strings.py
 +++ b/strings.py
 @@ -8,6 +8,7 @@ from functools import lru_cache
