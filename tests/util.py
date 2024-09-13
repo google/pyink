@@ -267,6 +267,9 @@ def get_flags_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pyink", default=False, action="store_true")
     parser.add_argument("--pyink-indentation", default=4, type=int, choices=[2, 4])
     parser.add_argument(
+        "--pyink-ipynb-indentation", default=1, type=int, choices=[1, 2]
+    )
+    parser.add_argument(
         "--no-preview-line-length-1",
         default=False,
         action="store_true",
@@ -291,6 +294,7 @@ def parse_mode(flags_line: str) -> TestCaseArgs:
         preview=args.preview,
         is_pyink=args.pyink,
         pyink_indentation=args.pyink_indentation,
+        pyink_ipynb_indentation=args.pyink_ipynb_indentation,
         unstable=args.unstable,
     )
     if args.line_ranges:
@@ -344,7 +348,8 @@ def read_jupyter_notebook(subdir_name: str, name: str, data: bool = True) -> str
 def read_jupyter_notebook_from_file(file_name: Path) -> str:
     with open(file_name, mode="rb") as fd:
         content_bytes = fd.read()
-    return content_bytes.decode()
+    # Replacing potential Windows CRLF to make it consistent cross platforms.
+    return content_bytes.decode().replace("\r\n", "\n")
 
 
 @contextmanager

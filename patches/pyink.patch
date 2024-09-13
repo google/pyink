@@ -120,7 +120,7 @@
      ),
  )
  @click.option(
-@@ -351,20 +352,46 @@ def validate_regex(
+@@ -351,20 +352,56 @@ def validate_regex(
      ),
  )
  @click.option(
@@ -138,6 +138,16 @@
 +    default="4",
 +    show_default=True,
 +    help="The number of spaces used for indentation.",
++)
++@click.option(
++    "--pyink-ipynb-indentation",
++    type=click.Choice(["1", "2"]),
++    default="1",
++    show_default=True,
++    help=(
++        "The number of spaces used for indentation of JSON content in a Jupyter"
++        " notebook."
++    ),
 +)
 +@click.option(
 +    "--pyink-use-majority-quotes",
@@ -335,37 +345,63 @@
      ),
      is_eager=True,
      metavar="SRC ...",
-@@ -543,6 +576,9 @@ def main(  # noqa: C901
+@@ -543,6 +576,10 @@ def main(  # noqa: C901
      preview: bool,
      unstable: bool,
      enable_unstable_feature: List[Preview],
 +    pyink: bool,
 +    pyink_indentation: str,
++    pyink_ipynb_indentation: str,
 +    pyink_use_majority_quotes: bool,
      quiet: bool,
      verbose: bool,
      required_version: Optional[str],
-@@ -629,6 +665,7 @@ def main(  # noqa: C901
-     else:
-         # We'll autodetect later.
-         versions = set()
-+    pyink_indentation = 2 if pyink_indentation == "2" else 4
-     mode = Mode(
-         target_versions=versions,
-         line_length=line_length,
-@@ -640,7 +677,11 @@ def main(  # noqa: C901
+@@ -640,7 +677,12 @@ def main(  # noqa: C901
          preview=preview,
          unstable=unstable,
          python_cell_magics=set(python_cell_magics),
 -        enabled_features=set(enable_unstable_feature),
 +        is_pyink=pyink,
-+        pyink_indentation=pyink_indentation,
++        pyink_indentation=int(pyink_indentation),
++        pyink_ipynb_indentation=int(pyink_ipynb_indentation),
 +        quote_style=(
 +            QuoteStyle.MAJORITY if pyink_use_majority_quotes else QuoteStyle.DOUBLE
 +        ),
      )
  
      lines: List[Tuple[int, int]] = []
+@@ -1175,7 +1219,6 @@
+         raise NothingChanged
+ 
+     trailing_newline = src_contents[-1] == "\n"
+-    modified = False
+     nb = json.loads(src_contents)
+     validate_metadata(nb)
+     for cell in nb["cells"]:
+@@ -1184,14 +1230,15 @@
+                 pass
+             else:
+                 cell["source"] = dst.splitlines(keepends=True)
+-                modified = True
+-    if modified:
+-        dst_contents = json.dumps(nb, indent=1, ensure_ascii=False)
+-        if trailing_newline:
+-            dst_contents = dst_contents + "\n"
+-        return dst_contents
+-    else:
+-        raise NothingChanged
++
++    # Content can also be modified in the following step if different ipynb
++    # indentation is used.
++    dst_contents = json.dumps(
++        nb, indent=mode.pyink_ipynb_indentation, ensure_ascii=False
++    )
++    if trailing_newline:
++        dst_contents = dst_contents + "\n"
++    return dst_contents
+ 
+ 
+ def format_str(
 @@ -1253,6 +1294,8 @@ def _format_str_once(
          future_imports = get_future_imports(src_node)
          versions = detect_target_versions(src_node, future_imports=future_imports)
@@ -953,7 +989,7 @@
  _MAX_CACHE_KEY_PART_LENGTH: Final = 32
  
  
-@@ -206,12 +224,18 @@ class Mode:
+@@ -206,12 +224,19 @@ class Mode:
      target_versions: Set[TargetVersion] = field(default_factory=set)
      line_length: int = DEFAULT_LINE_LENGTH
      string_normalization: bool = True
@@ -969,6 +1005,7 @@
      preview: bool = False
 +    is_pyink: bool = False
 +    pyink_indentation: Literal[2, 4] = 4
++    pyink_ipynb_indentation: Literal[1, 2] = 1
      unstable: bool = False
      enabled_features: Set[Preview] = field(default_factory=set)
  
@@ -982,7 +1019,7 @@
          if self.unstable:
              return True
          if feature in self.enabled_features:
-@@ -254,11 +281,24 @@ class Mode:
+@@ -254,11 +281,25 @@ class Mode:
              version_str,
              str(self.line_length),
              str(int(self.string_normalization)),
@@ -995,6 +1032,7 @@
              str(int(self.preview)),
 +            str(int(self.is_pyink)),
 +            str(self.pyink_indentation),
++            str(self.pyink_ipynb_indentation),
              features_and_magics,
          ]
          return ".".join(parts)
@@ -1344,26 +1382,130 @@
      def test_get_sources_with_stdin_filename_and_force_exclude_and_symlink(
          self,
      ) -> None:
+--- a/tests/test_ipynb.py
++++ b/tests/test_ipynb.py
+@@ -26,8 +26,10 @@
+ pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
+ 
+ JUPYTER_MODE = Mode(is_ipynb=True)
++PYINK_JUPYTER_MODE = Mode(is_ipynb=True, pyink_indentation=2, pyink_ipynb_indentation=2)
+ 
+ EMPTY_CONFIG = DATA_DIR / "empty_pyproject.toml"
++PYINK_OVERRIDE_CONFIG = DATA_DIR / "pyink_configs" / "overrides.toml"
+ 
+ runner = CliRunner()
+ 
+@@ -385,6 +385,45 @@
+     assert result == expected
+ 
+ 
++def test_entire_notebook_with_pyink_overrides() -> None:
++    content = read_jupyter_notebook("pyink_configs", "example")
++    result = format_file_contents(content, fast=True, mode=PYINK_JUPYTER_MODE)
++    expected = (
++        "{\n"
++        '  "cells": [\n'
++        "    {\n"
++        '      "cell_type": "markdown",\n'
++        '      "metadata": {},\n'
++        '      "source": [\n'
++        '        "### Unformatted notebook"\n'
++        "      ]\n"
++        "    },\n"
++        "    {\n"
++        '      "cell_type": "code",\n'
++        '      "execution_count": null,\n'
++        '      "metadata": {},\n'
++        '      "outputs": [],\n'
++        '      "source": [\n'
++        '        "%%time\\n",\n'
++        '        "\\n",\n'
++        '        "a = 1\\n",\n'
++        '        "if a == 1:\\n",\n'
++        '        "    print(\\"\\")"\n'
++        "      ]\n"
++        "    }\n"
++        "  ],\n"
++        '  "metadata": {\n'
++        '    "language_info": {\n'
++        '      "name": "python"\n'
++        "    }\n"
++        "  },\n"
++        '  "nbformat": 4,\n'
++        '  "nbformat_minor": 5\n'
++        "}\n"
++    )
++    assert result == expected
++
++
+ def test_entire_notebook_without_changes() -> None:
+     content = read_jupyter_notebook("jupyter", "notebook_without_changes")
+     with pytest.raises(NothingChanged):
+@@ -472,6 +472,30 @@
+     assert expected in result.output
+ 
+ 
++def test_ipynb_diff_with_pyink_overrides() -> None:
++    result = runner.invoke(
++        main,
++        [
++            str(get_case_path("pyink_configs", "example.ipynb")),
++            "--diff",
++            f"--config={PYINK_OVERRIDE_CONFIG}",
++        ],
++    )
++    expected = """00:00:cell_1
++@@ -1,6 +1,5 @@
++- %%time
+++%%time
++ 
++-a=1
++-if a  ==1:
++-    print("")
++-
+++a = 1
+++if a == 1:
+++  print("")"""
++    assert expected in result.output
++
++
+ def test_cache_isnt_written_if_no_jupyter_deps_single(
+     monkeypatch: MonkeyPatch, tmp_path: pathlib.Path
+ ) -> None:
 --- a/tests/util.py
 +++ b/tests/util.py
-@@ -271,6 +271,8 @@ def get_flags_parser() -> argparse.Argum
+@@ -271,6 +271,11 @@ def get_flags_parser() -> argparse.Argum
          ),
      )
      parser.add_argument("--line-ranges", action="append")
 +    parser.add_argument("--pyink", default=False, action="store_true")
 +    parser.add_argument("--pyink-indentation", default=4, type=int, choices=[2, 4])
++    parser.add_argument(
++        "--pyink-ipynb-indentation", default=1, type=int, choices=[1, 2]
++    )
      parser.add_argument(
          "--no-preview-line-length-1",
          default=False,
-@@ -294,6 +296,8 @@ def parse_mode(flags_line: str) -> TestC
+@@ -294,6 +296,9 @@ def parse_mode(flags_line: str) -> TestC
          is_ipynb=args.ipynb,
          magic_trailing_comma=not args.skip_magic_trailing_comma,
          preview=args.preview,
 +        is_pyink=args.pyink,
 +        pyink_indentation=args.pyink_indentation,
++        pyink_ipynb_indentation=args.pyink_ipynb_indentation,
          unstable=args.unstable,
      )
      if args.line_ranges:
+@@ -355,7 +355,8 @@
+ def read_jupyter_notebook_from_file(file_name: Path) -> str:
+     with open(file_name, mode="rb") as fd:
+         content_bytes = fd.read()
+-    return content_bytes.decode()
++    # Replacing potential Windows CRLF to make it consistent cross platforms.
++    return content_bytes.decode().replace("\r\n", "\n")
+ 
+ 
+ @contextmanager
 --- a/tox.ini
 +++ b/tox.ini
 @@ -95,12 +95,4 @@ setenv = PYTHONPATH = {toxinidir}/src

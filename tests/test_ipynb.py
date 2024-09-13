@@ -27,8 +27,10 @@ pytest.importorskip("IPython", reason="IPython is an optional dependency")
 pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
 
 JUPYTER_MODE = Mode(is_ipynb=True)
+PYINK_JUPYTER_MODE = Mode(is_ipynb=True, pyink_indentation=2, pyink_ipynb_indentation=2)
 
 EMPTY_CONFIG = DATA_DIR / "empty_pyproject.toml"
+PYINK_OVERRIDE_CONFIG = DATA_DIR / "pyink_configs" / "overrides.toml"
 
 runner = CliRunner()
 
@@ -381,6 +383,45 @@ def test_entire_notebook_no_trailing_newline() -> None:
     assert result == expected
 
 
+def test_entire_notebook_with_pyink_overrides() -> None:
+    content = read_jupyter_notebook("pyink_configs", "example")
+    result = format_file_contents(content, fast=True, mode=PYINK_JUPYTER_MODE)
+    expected = (
+        "{\n"
+        '  "cells": [\n'
+        "    {\n"
+        '      "cell_type": "markdown",\n'
+        '      "metadata": {},\n'
+        '      "source": [\n'
+        '        "### Unformatted notebook"\n'
+        "      ]\n"
+        "    },\n"
+        "    {\n"
+        '      "cell_type": "code",\n'
+        '      "execution_count": null,\n'
+        '      "metadata": {},\n'
+        '      "outputs": [],\n'
+        '      "source": [\n'
+        '        "%%time\\n",\n'
+        '        "\\n",\n'
+        '        "a = 1\\n",\n'
+        '        "if a == 1:\\n",\n'
+        '        "    print(\\"\\")"\n'
+        "      ]\n"
+        "    }\n"
+        "  ],\n"
+        '  "metadata": {\n'
+        '    "language_info": {\n'
+        '      "name": "python"\n'
+        "    }\n"
+        "  },\n"
+        '  "nbformat": 4,\n'
+        '  "nbformat_minor": 5\n'
+        "}\n"
+    )
+    assert result == expected
+
+
 def test_entire_notebook_without_changes() -> None:
     content = read_jupyter_notebook("jupyter", "notebook_without_changes")
     with pytest.raises(NothingChanged):
@@ -429,6 +470,30 @@ def test_ipynb_diff_with_no_change() -> None:
         ],
     )
     expected = "1 file would be left unchanged."
+    assert expected in result.output
+
+
+def test_ipynb_diff_with_pyink_overrides() -> None:
+    result = runner.invoke(
+        main,
+        [
+            str(get_case_path("pyink_configs", "example.ipynb")),
+            "--diff",
+            f"--config={PYINK_OVERRIDE_CONFIG}",
+        ],
+    )
+    expected = """00:00:cell_1
+@@ -1,6 +1,5 @@
+- %%time
++%%time
+ 
+-a=1
+-if a  ==1:
+-    print("")
+-
++a = 1
++if a == 1:
++  print("")"""
     assert expected in result.output
 
 

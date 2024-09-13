@@ -262,6 +262,7 @@ class Mode:
     preview: bool = False
     is_pyink: bool = False
     pyink_indentation: Literal[2, 4] = 4
+    pyink_ipynb_indentation: Literal[1, 2] = 1
     unstable: bool = False
     enabled_features: Set[Preview] = field(default_factory=set)
 
@@ -316,6 +317,7 @@ class Mode:
             str(int(self.preview)),
             str(int(self.is_pyink)),
             str(self.pyink_indentation),
+            str(self.pyink_ipynb_indentation),
             features_and_magics,
         ]
         return ".".join(parts)

@@ -359,6 +359,16 @@ def validate_regex(
     help="The number of spaces used for indentation.",
 )
 @click.option(
+    "--pyink-ipynb-indentation",
+    type=click.Choice(["1", "2"]),
+    default="1",
+    show_default=True,
+    help=(
+        "The number of spaces used for indentation of JSON content in a Jupyter"
+        " notebook."
+    ),
+)
+@click.option(
     "--pyink-use-majority-quotes",
     is_flag=True,
     help=(
@@ -569,6 +579,7 @@ def main(  # noqa: C901
     enable_unstable_feature: List[Preview],
     pyink: bool,
     pyink_indentation: str,
+    pyink_ipynb_indentation: str,
     pyink_use_majority_quotes: bool,
     quiet: bool,
     verbose: bool,
@@ -656,7 +667,6 @@ def main(  # noqa: C901
     else:
         # We'll autodetect later.
         versions = set()
-    pyink_indentation = 2 if pyink_indentation == "2" else 4
     mode = Mode(
         target_versions=versions,
         line_length=line_length,
@@ -669,7 +679,8 @@ def main(  # noqa: C901
         unstable=unstable,
         python_cell_magics=set(python_cell_magics),
         is_pyink=pyink,
-        pyink_indentation=pyink_indentation,
+        pyink_indentation=int(pyink_indentation),
+        pyink_ipynb_indentation=int(pyink_ipynb_indentation),
         quote_style=(
             QuoteStyle.MAJORITY if pyink_use_majority_quotes else QuoteStyle.DOUBLE
         ),
@@ -1205,7 +1216,6 @@ def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileCon
         raise NothingChanged
 
     trailing_newline = src_contents[-1] == "\n"
-    modified = False
     nb = json.loads(src_contents)
     validate_metadata(nb)
     for cell in nb["cells"]:
@@ -1217,14 +1227,15 @@ def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileCon
                 pass
             else:
                 cell["source"] = dst.splitlines(keepends=True)
-                modified = True
-    if modified:
-        dst_contents = json.dumps(nb, indent=1, ensure_ascii=False)
-        if trailing_newline:
-            dst_contents = dst_contents + "\n"
-        return dst_contents
-    else:
-        raise NothingChanged
+
+    # Content can also be modified in the following step if different ipynb
+    # indentation is used.
+    dst_contents = json.dumps(
+        nb, indent=mode.pyink_ipynb_indentation, ensure_ascii=False
+    )
+    if trailing_newline:
+        dst_contents = dst_contents + "\n"
+    return dst_contents
 
 
 def format_str(
