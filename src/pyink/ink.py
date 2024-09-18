@@ -3,6 +3,7 @@
 This is a separate module for easier patch management.
 """
 
+import re
 from typing import (
     Collection,
     Iterator,
@@ -60,6 +61,26 @@ def majority_quote(node: LN) -> Quote:
     if num_single_quotes > num_double_quotes:
         return Quote.SINGLE
     return Quote.DOUBLE
+
+
+def get_code_start(src: str) -> str:
+    """Provides the first line where the code starts.
+
+    Iterates over lines of code until it finds the first line that doesn't
+    contain only empty spaces and comments. If such line doesn't exist, it
+    returns an empty string.
+
+    Args:
+      src: The multi-line source code.
+
+    Returns:
+      The first line of code without initial spaces or an empty string.
+    """
+    for match in re.finditer(".+", src):
+        line = match.group(0).lstrip()
+        if line and not line.startswith("#"):
+            return line
+    return ""
 
 
 def convert_unchanged_lines(src_node: Node, lines: Collection[Tuple[int, int]]):

@@ -370,6 +370,20 @@
      )
  
      lines: List[Tuple[int, int]] = []
+@@ -1153,9 +677,10 @@
+     """
+     if any(transformed_magic in src for transformed_magic in TRANSFORMED_MAGICS):
+         raise NothingChanged
+-    if (
+-        src[:2] == "%%"
+-        and src.split()[0][2:] not in PYTHON_CELL_MAGICS | mode.python_cell_magics
++    line = ink.get_code_start(src)
++    if line.startswith("%%") and (
++        line.split(maxsplit=1)[0][2:]
++        not in PYTHON_CELL_MAGICS | mode.python_cell_magics
+     ):
+         raise NothingChanged
+ 
 @@ -1175,7 +1219,6 @@
          raise NothingChanged
  
@@ -1395,6 +1409,29 @@
  
  runner = CliRunner()
  
+@@ -209,6 +209,22 @@
+         assert result == expected_output
+ 
+ 
++@pytest.mark.parametrize(
++    "src",
++    (
++        "   %%custom_magic \nx=2",
++        "\n\n%%custom_magic\nx=2",
++        "# comment\n%%custom_magic\nx=2",
++        "\n  \n # comment with %%time\n\t\n %%custom_magic # comment \nx=2",
++    ),
++)
++def test_cell_magic_with_custom_python_magic_after_spaces_and_comments_noop(
++    src: str,
++) -> None:
++    with pytest.raises(NothingChanged):
++        format_cell(src, fast=True, mode=JUPYTER_MODE)
++
++
+ def test_cell_magic_nested() -> None:
+     src = "%%time\n%%time\n2+2"
+     result = format_cell(src, fast=True, mode=JUPYTER_MODE)
 @@ -385,6 +385,45 @@
      assert result == expected
  

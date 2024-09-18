@@ -1150,9 +1150,10 @@ def validate_cell(src: str, mode: Mode) -> None:
     """
     if any(transformed_magic in src for transformed_magic in TRANSFORMED_MAGICS):
         raise NothingChanged
-    if (
-        src[:2] == "%%"
-        and src.split()[0][2:] not in PYTHON_CELL_MAGICS | mode.python_cell_magics
+    line = ink.get_code_start(src)
+    if line.startswith("%%") and (
+        line.split(maxsplit=1)[0][2:]
+        not in PYTHON_CELL_MAGICS | mode.python_cell_magics
     ):
         raise NothingChanged
 
