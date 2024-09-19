@@ -442,6 +442,17 @@
      (917760, 917999, 0),
 -]
 +)
+--- a/handle_ipynb_magics.py
++++ b/handle_ipynb_magics.py
+@@ -263,6 +263,8 @@
+     """
+     for replacement in replacements:
+         src = src.replace(replacement.mask, replacement.src)
++        # Strings in src might have been reformatted with single quotes.
++        src = src.replace(f"'{replacement.mask[1:-1]}'", replacement.src)
+     return src
+ 
+ 
 --- a/linegen.py
 +++ b/linegen.py
 @@ -9,6 +9,11 @@ from enum import Enum, auto
@@ -1398,6 +1409,14 @@
      ) -> None:
 --- a/tests/test_ipynb.py
 +++ b/tests/test_ipynb.py
+@@ -12,6 +12,7 @@
+ from pyink import (
+     Mode,
+     NothingChanged,
++    QuoteStyle,
+     format_cell,
+     format_file_contents,
+     format_file_in_place,
 @@ -26,8 +26,10 @@
  pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
  
@@ -1409,7 +1428,7 @@
  
  runner = CliRunner()
  
-@@ -209,6 +209,22 @@
+@@ -209,6 +209,29 @@
          assert result == expected_output
  
  
@@ -1427,6 +1446,13 @@
 +) -> None:
 +    with pytest.raises(NothingChanged):
 +        format_cell(src, fast=True, mode=JUPYTER_MODE)
++
++
++def test_cell_magic_with_forced_single_quoted_strings() -> None:
++    src = "%time"
++    mode = replace(JUPYTER_MODE, quote_style=QuoteStyle.SINGLE)
++    with pytest.raises(NothingChanged):
++        format_cell(src, fast=True, mode=mode)
 +
 +
  def test_cell_magic_nested() -> None:

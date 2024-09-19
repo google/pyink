@@ -273,6 +273,8 @@ def unmask_cell(src: str, replacements: List[Replacement]) -> str:
     """
     for replacement in replacements:
         src = src.replace(replacement.mask, replacement.src)
+        # Strings in src might have been reformatted with single quotes.
+        src = src.replace(f"'{replacement.mask[1:-1]}'", replacement.src)
     return src
 
 

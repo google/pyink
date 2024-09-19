@@ -12,6 +12,7 @@ from click.testing import CliRunner
 from pyink import (
     Mode,
     NothingChanged,
+    QuoteStyle,
     format_cell,
     format_file_contents,
     format_file_in_place,
@@ -224,6 +225,13 @@ def test_cell_magic_with_custom_python_magic_after_spaces_and_comments_noop(
 ) -> None:
     with pytest.raises(NothingChanged):
         format_cell(src, fast=True, mode=JUPYTER_MODE)
+
+
+def test_cell_magic_with_forced_single_quoted_strings() -> None:
+    src = "%time"
+    mode = replace(JUPYTER_MODE, quote_style=QuoteStyle.SINGLE)
+    with pytest.raises(NothingChanged):
+        format_cell(src, fast=True, mode=mode)
 
 
 def test_cell_magic_nested() -> None:
