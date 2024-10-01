@@ -2,7 +2,7 @@
 # This file is provided so it's easier to see the actual differences between Black and Pyink.
 --- a/__init__.py
 +++ b/__init__.py
-@@ -1,16 +1,16 @@
+@@ -1,16 +2,16 @@
 +from contextlib import contextmanager
 +from dataclasses import replace
 +from datetime import datetime, timezone
