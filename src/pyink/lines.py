@@ -1,7 +1,6 @@
 from enum import Enum, auto
 import itertools
 import math
-import re
 from dataclasses import dataclass, field
 from typing import (
     Callable,
@@ -30,7 +29,7 @@ from pyink.nodes import (
     is_multiline_string,
     is_one_sequence_between,
     is_type_comment,
-    is_type_ignore_comment,
+    is_pragma_comment,
     is_with_or_async_with_stmt,
     make_simple_prefix,
     replace_child,
@@ -46,9 +45,6 @@ T = TypeVar("T")
 Index = int
 LeafID = int
 LN = Union[Leaf, Node]
-
-# This regex should contain a single capture group capturing the entire match.
-_PRAGMA_REGEX = re.compile("( *# (?:pylint|pytype):)")
 
 
 class Indentation(Enum):
@@ -293,7 +289,7 @@ class Line:
                     return True
         return False
 
-    def contains_uncollapsable_type_comments(self) -> bool:
+    def contains_uncollapsable_pragma_comments(self) -> bool:
         ignored_ids = set()
         try:
             last_leaf = self.leaves[-1]
@@ -318,11 +314,9 @@ class Line:
         comment_seen = False
         for leaf_id, comments in self.comments.items():
             for comment in comments:
-                if is_type_comment(comment):
-                    if comment_seen or (
-                        not is_type_ignore_comment(comment)
-                        and leaf_id not in ignored_ids
-                    ):
+                is_pragma = is_pragma_comment(comment, self.mode)
+                if is_type_comment(comment) or is_pragma:
+                    if comment_seen or (not is_pragma and leaf_id not in ignored_ids):
                         return True
 
                 comment_seen = True
@@ -357,33 +351,10 @@ class Line:
             # line.
             for node in self.leaves[-2:]:
                 for comment in self.comments.get(id(node), []):
-                    if is_type_ignore_comment(comment):
+                    if is_pragma_comment(comment, self.mode):
                         return True
 
         return False
-
-    def trailing_pragma_comment_length(self) -> int:
-        if not self.leaves:
-            return 0
-
-        trailing_comments = self.comments.get(id(self.leaves[-1]), [])
-        if (
-            not trailing_comments
-            and len(self.leaves) > 1
-            and self.leaves[-1].type == token.RPAR
-            and not self.leaves[-1].value
-        ):
-            # When last leaf is an invisible paren, the trailing comment is
-            # attached to the leaf before.
-            trailing_comments = self.comments.get(id(self.leaves[-2]), [])
-        length = 0
-        for comment in trailing_comments:
-            # str(comment) contains the whitespace preceding the `#`
-            comment_str = str(comment)
-            parts = _PRAGMA_REGEX.split(comment_str, maxsplit=1)
-            if len(parts) == 3:
-                length += len(parts[1]) + len(parts[2])
-        return length
 
     def contains_multiline_strings(self) -> bool:
         return any(is_multiline_string(leaf) for leaf in self.leaves)
@@ -730,7 +701,7 @@ class EmptyLineTracker:
                 or self.previous_line.is_fmt_pass_converted(
                     first_leaf_matches=is_import
                 )
-             )
+            )
             and not current_line.is_import
             and not (
                 # Should not add empty lines before a STANDALONE_COMMENT.
@@ -878,14 +849,9 @@ def is_line_short_enough(  # noqa: C901
     if not line_str:
         line_str = line_to_string(line)
 
-    if line.mode.is_pyink:
-        effective_length = str_width(line_str) - line.trailing_pragma_comment_length()
-    else:
-        effective_length = str_width(line_str)
-
     if Preview.multiline_string_handling not in mode:
         return (
-            effective_length <= mode.line_length
+            str_width(line_str) <= mode.line_length
             and "\n" not in line_str  # multiline strings
             and not line.contains_standalone_comments()
         )
@@ -894,7 +860,7 @@ def is_line_short_enough(  # noqa: C901
         return False
     if "\n" not in line_str:
         # No multiline strings (MLS) present
-        return effective_length <= mode.line_length
+        return str_width(line_str) <= mode.line_length
 
     first, *_, last = line_str.split("\n")
     if str_width(first) > mode.line_length or str_width(last) > mode.line_length:

@@ -1,3 +1,4 @@
 [tool.pyink]
 pyink-indentation = 2
 pyink-ipynb-indentation = 2
+pyink-annotation-pragmas = ["@param", "type: ignore"]

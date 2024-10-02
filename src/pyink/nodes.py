@@ -23,6 +23,7 @@ else:
 
 from mypy_extensions import mypyc_attr
 
+from pyink import ink_comments
 from pyink.cache import CACHE_DIR
 from pyink.mode import Mode, Preview
 from pyink.strings import get_string_prefix, has_triple_quotes
@@ -923,11 +924,13 @@ def is_type_comment(leaf: Leaf) -> bool:
     return t in {token.COMMENT, STANDALONE_COMMENT} and v.startswith("# type:")
 
 
-def is_type_ignore_comment(leaf: Leaf) -> bool:
+def is_pragma_comment(leaf: Leaf, mode: Mode) -> bool:
     """Return True if the given leaf is a type comment with ignore annotation."""
     t = leaf.type
     v = leaf.value
-    return t in {token.COMMENT, STANDALONE_COMMENT} and is_type_ignore_comment_string(v)
+    return t in {token.COMMENT, STANDALONE_COMMENT} and (
+        ink_comments.comment_contains_pragma(v, mode)
+    )
 
 
 def is_type_ignore_comment_string(value: str) -> bool:

@@ -14,6 +14,7 @@ if sys.version_info < (3, 8):
 else:
     from typing import Final, Literal
 
+from pyink import ink_comments
 from pyink.brackets import (
     COMMA_PRIORITY,
     DOT_PRIORITY,
@@ -61,7 +62,6 @@ from pyink.nodes import (
     is_stub_body,
     is_stub_suite,
     is_tuple_containing_walrus,
-    is_type_ignore_comment_string,
     is_vararg,
     is_walrus_assignment,
     is_yield,
@@ -272,6 +272,7 @@ class LineGenerator(Visitor[Line]):
                         maybe_make_parens_invisible_in_atom(
                             child,
                             parent=node,
+                            mode=self.mode,
                             remove_brackets_around_comma=False,
                         )
                     else:
@@ -292,6 +293,7 @@ class LineGenerator(Visitor[Line]):
                     if maybe_make_parens_invisible_in_atom(
                         child,
                         parent=node,
+                        mode=self.mode,
                         remove_brackets_around_comma=False,
                     ):
                         wrap_in_parentheses(node, child, visible=False)
@@ -395,7 +397,7 @@ class LineGenerator(Visitor[Line]):
             ):
                 wrap_in_parentheses(node, leaf)
 
-        remove_await_parens(node)
+        remove_await_parens(node, mode=self.mode)
 
         yield from self.visit_default(node)
 
@@ -442,7 +444,9 @@ class LineGenerator(Visitor[Line]):
         def foo(a: (int), b: (float) = 7): ...
         """
         assert len(node.children) == 3
-        if maybe_make_parens_invisible_in_atom(node.children[2], parent=node):
+        if maybe_make_parens_invisible_in_atom(
+            node.children[2], parent=node, mode=self.mode
+        ):
             wrap_in_parentheses(node, node.children[2], visible=False)
 
         yield from self.visit_default(node)
@@ -688,7 +692,7 @@ def transform_line(
 
     transformers: List[Transformer]
     if (
-        not line.contains_uncollapsable_type_comments()
+        not line.contains_uncollapsable_pragma_comments()
         and not line.should_split_rhs
         and not line.magic_trailing_comma
         and (
@@ -1451,15 +1455,17 @@ def normalize_invisible_parens(  # noqa: C901
                 if maybe_make_parens_invisible_in_atom(
                     child,
                     parent=node,
+                    mode=mode,
                     remove_brackets_around_comma=True,
                 ):
                     wrap_in_parentheses(node, child, visible=False)
             elif isinstance(child, Node) and node.type == syms.with_stmt:
-                remove_with_parens(child, node)
+                remove_with_parens(child, node, mode=mode)
             elif child.type == syms.atom:
                 if maybe_make_parens_invisible_in_atom(
                     child,
                     parent=node,
+                    mode=mode,
                 ):
                     wrap_in_parentheses(node, child, visible=False)
             elif is_one_tuple(child):
@@ -1511,7 +1517,7 @@ def _normalize_import_from(parent: Node, child: LN, index: int) -> None:
         parent.append_child(Leaf(token.RPAR, ""))
 
 
-def remove_await_parens(node: Node) -> None:
+def remove_await_parens(node: Node, mode: Mode) -> None:
     if node.children[0].type == token.AWAIT and len(node.children) > 1:
         if (
             node.children[1].type == syms.atom
@@ -1520,6 +1526,7 @@ def remove_await_parens(node: Node) -> None:
             if maybe_make_parens_invisible_in_atom(
                 node.children[1],
                 parent=node,
+                mode=mode,
                 remove_brackets_around_comma=True,
             ):
                 wrap_in_parentheses(node, node.children[1], visible=False)
@@ -1588,7 +1595,7 @@ def _maybe_wrap_cms_in_parens(
         node.insert_child(1, new_child)
 
 
-def remove_with_parens(node: Node, parent: Node) -> None:
+def remove_with_parens(node: Node, parent: Node, mode: Mode) -> None:
     """Recursively hide optional parens in `with` statements."""
     # Removing all unnecessary parentheses in with statements in one pass is a tad
     # complex as different variations of bracketed statements result in pretty
@@ -1610,21 +1617,23 @@ def remove_with_parens(node: Node, parent: Node) -> None:
         if maybe_make_parens_invisible_in_atom(
             node,
             parent=parent,
+            mode=mode,
             remove_brackets_around_comma=True,
         ):
             wrap_in_parentheses(parent, node, visible=False)
         if isinstance(node.children[1], Node):
-            remove_with_parens(node.children[1], node)
+            remove_with_parens(node.children[1], node, mode=mode)
     elif node.type == syms.testlist_gexp:
         for child in node.children:
             if isinstance(child, Node):
-                remove_with_parens(child, node)
+                remove_with_parens(child, node, mode=mode)
     elif node.type == syms.asexpr_test and not any(
         leaf.type == token.COLONEQUAL for leaf in node.leaves()
     ):
         if maybe_make_parens_invisible_in_atom(
             node.children[0],
             parent=node,
+            mode=mode,
             remove_brackets_around_comma=True,
         ):
             wrap_in_parentheses(node, node.children[0], visible=False)
@@ -1633,6 +1642,7 @@ def remove_with_parens(node: Node, parent: Node) -> None:
 def maybe_make_parens_invisible_in_atom(
     node: LN,
     parent: LN,
+    mode: Mode,
     remove_brackets_around_comma: bool = False,
 ) -> bool:
     """If it's safe, make the parens in the atom `node` invisible, recursively.
@@ -1682,7 +1692,7 @@ def maybe_make_parens_invisible_in_atom(
         if (
             # If the prefix of `middle` includes a type comment with
             # ignore annotation, then we do not remove the parentheses
-            not is_type_ignore_comment_string(middle.prefix.strip())
+            not ink_comments.comment_contains_pragma(middle.prefix.strip(), mode)
         ):
             first.value = ""
             if first.prefix.strip():
@@ -1692,6 +1702,7 @@ def maybe_make_parens_invisible_in_atom(
         maybe_make_parens_invisible_in_atom(
             middle,
             parent=parent,
+            mode=mode,
             remove_brackets_around_comma=remove_brackets_around_comma,
         )
 
@@ -1835,7 +1846,7 @@ def run_transformer(
         or not line.bracket_tracker.invisible
         or any(bracket.value for bracket in line.bracket_tracker.invisible)
         or line.contains_multiline_strings()
-        or result[0].contains_uncollapsable_type_comments()
+        or result[0].contains_uncollapsable_pragma_comments()
         or result[0].contains_unsplittable_type_ignore()
         or is_line_short_enough(result[0], mode=mode)
         # If any leaves have no parents (which _can_ occur since

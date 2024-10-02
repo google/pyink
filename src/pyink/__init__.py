@@ -69,7 +69,13 @@ from pyink.linegen import LN, LineGenerator, transform_line
 from pyink.lines import EmptyLineTracker, LinesBlock
 from pyink.mode import FUTURE_FLAG_TO_FEATURE, Feature, VERSION_TO_FEATURES
 from pyink.mode import Mode as Mode  # re-exported
-from pyink.mode import Preview, QuoteStyle, TargetVersion, supports_feature
+from pyink.mode import (
+    DEFAULT_ANNOTATION_PRAGMAS,
+    Preview,
+    QuoteStyle,
+    TargetVersion,
+    supports_feature,
+)
 from pyink.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
 from pyink.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
 from pyink.parsing import (  # noqa F401
@@ -369,6 +375,18 @@ def validate_regex(
     ),
 )
 @click.option(
+    "--pyink-annotation-pragmas",
+    type=str,
+    multiple=True,
+    help=(
+        "Pyink won't split too long lines if they contain a comment with any of"
+        " the given annotation pragmas because it doesn't know to which part of"
+        " the line the annotation applies. The default annotation pragmas are:"
+        f" {', '.join(DEFAULT_ANNOTATION_PRAGMAS)}."
+    ),
+    default=[],
+)
+@click.option(
     "--pyink-use-majority-quotes",
     is_flag=True,
     help=(
@@ -580,6 +598,7 @@ def main(  # noqa: C901
     pyink: bool,
     pyink_indentation: str,
     pyink_ipynb_indentation: str,
+    pyink_annotation_pragmas: List[str],
     pyink_use_majority_quotes: bool,
     quiet: bool,
     verbose: bool,
@@ -681,6 +700,9 @@ def main(  # noqa: C901
         is_pyink=pyink,
         pyink_indentation=int(pyink_indentation),
         pyink_ipynb_indentation=int(pyink_ipynb_indentation),
+        pyink_annotation_pragmas=(
+            tuple(pyink_annotation_pragmas) or DEFAULT_ANNOTATION_PRAGMAS
+        ),
         quote_style=(
             QuoteStyle.MAJORITY if pyink_use_majority_quotes else QuoteStyle.DOUBLE
         ),

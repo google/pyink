@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from hashlib import sha256
 from operator import attrgetter
-from typing import Dict, Final, Literal, Set
+from typing import Dict, Final, Literal, Set, Tuple
 
 from pyink.const import DEFAULT_LINE_LENGTH
 
@@ -242,7 +242,13 @@ class QuoteStyle(Enum):
     MAJORITY = auto()
 
 
-_MAX_CACHE_KEY_PART_LENGTH: Final = 32
+_MAX_CACHE_KEY_PART_LENGTH: Final = 16
+
+DEFAULT_ANNOTATION_PRAGMAS = (
+    "noqa",  # flake8
+    "pylint:",
+    "type: ignore",
+)
 
 
 @dataclass
@@ -263,6 +269,7 @@ class Mode:
     is_pyink: bool = False
     pyink_indentation: Literal[2, 4] = 4
     pyink_ipynb_indentation: Literal[1, 2] = 1
+    pyink_annotation_pragmas: Tuple[str, ...] = DEFAULT_ANNOTATION_PRAGMAS
     unstable: bool = False
     enabled_features: Set[Preview] = field(default_factory=set)
 
@@ -318,6 +325,7 @@ class Mode:
             str(int(self.is_pyink)),
             str(self.pyink_indentation),
             str(self.pyink_ipynb_indentation),
+            sha256(str(self.pyink_annotation_pragmas).encode()).hexdigest()[:8],
             features_and_magics,
         ]
         return ".".join(parts)

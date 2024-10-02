@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Collection, Final, Iterator, List, Optional, Tuple, Union
 
+from pyink import ink_comments
 from pyink.mode import Mode, Preview
 from pyink.nodes import (
     CLOSING_BRACKETS,
@@ -376,7 +377,7 @@ def children_contains_fmt_on(container: LN) -> bool:
     return False
 
 
-def contains_pragma_comment(comment_list: List[Leaf]) -> bool:
+def contains_pragma_comment(comment_list: List[Leaf], mode: Mode) -> bool:
     """
     Returns:
         True iff one of the comments in @comment_list is a pragma used by one
@@ -384,7 +385,7 @@ def contains_pragma_comment(comment_list: List[Leaf]) -> bool:
         pylint).
     """
     for comment in comment_list:
-        if comment.value.startswith(("# type:", "# noqa", "# pylint:")):
+        if ink_comments.comment_contains_pragma(comment.value, mode):
             return True
 
     return False
