@@ -1228,6 +1228,17 @@ def validate_metadata(nb: MutableMapping[str, Any]) -> None:
     if language is not None and language != "python":
         raise NothingChanged from None
 
+    if language is None:
+        kernelspec = nb.get("metadata", {}).get("kernelspec", {})
+        kernelspec_name = kernelspec.get("name")
+        kernelspec_language = kernelspec.get("language")
+        if (
+            kernelspec_name is not None
+            and kernelspec_name != "python3"
+            and kernelspec_language != "python"
+        ):
+            raise NothingChanged from None
+
 
 def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileContent:
     """Format Jupyter notebook.

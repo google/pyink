@@ -406,7 +406,25 @@
      ):
          raise NothingChanged
  
-@@ -1164,7 +1239,6 @@ def format_ipynb_string(src_contents: st
+@@ -1153,6 +1228,17 @@ def validate_metadata(nb: MutableMapping
+     if language is not None and language != "python":
+         raise NothingChanged from None
+ 
++    if language is None:
++        kernelspec = nb.get("metadata", {}).get("kernelspec", {})
++        kernelspec_name = kernelspec.get("name")
++        kernelspec_language = kernelspec.get("language")
++        if (
++            kernelspec_name is not None
++            and kernelspec_name != "python3"
++            and kernelspec_language != "python"
++        ):
++            raise NothingChanged from None
++
+ 
+ def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileContent:
+     """Format Jupyter notebook.
+@@ -1164,7 +1250,6 @@ def format_ipynb_string(src_contents: st
          raise NothingChanged
  
      trailing_newline = src_contents[-1] == "\n"
@@ -414,7 +432,7 @@
      nb = json.loads(src_contents)
      validate_metadata(nb)
      for cell in nb["cells"]:
-@@ -1176,14 +1250,15 @@ def format_ipynb_string(src_contents: st
+@@ -1176,14 +1261,15 @@ def format_ipynb_string(src_contents: st
                  pass
              else:
                  cell["source"] = dst.splitlines(keepends=True)
@@ -438,7 +456,7 @@
  
  
  def format_str(
-@@ -1244,6 +1319,8 @@ def _format_str_once(
+@@ -1244,6 +1330,8 @@ def _format_str_once(
          future_imports = get_future_imports(src_node)
          versions = detect_target_versions(src_node, future_imports=future_imports)
  
