@@ -523,7 +523,32 @@
      May raise:
 --- a/handle_ipynb_magics.py
 +++ b/handle_ipynb_magics.py
-@@ -273,6 +273,8 @@ def unmask_cell(src: str, replacements:
+@@ -148,12 +148,14 @@ def mask_cell(src: str) -> Tuple[str, Li
+     from IPython.core.inputtransformer2 import TransformerManager
+ 
+     transformer_manager = TransformerManager()
++    # A side effect of the following transformation is that it also removes any
++    # empty lines at the beginning of the cell.
+     transformed = transformer_manager.transform_cell(src)
+     transformed, cell_magic_replacements = replace_cell_magics(transformed)
+     replacements += cell_magic_replacements
+     transformed = transformer_manager.transform_cell(transformed)
+     transformed, magic_replacements = replace_magics(transformed)
+-    if len(transformed.splitlines()) != len(src.splitlines()):
++    if len(transformed.strip().splitlines()) != len(src.strip().splitlines()):
+         # Multi-line magic, not supported.
+         raise NothingChanged
+     replacements += magic_replacements
+@@ -239,7 +241,7 @@ def replace_magics(src: str) -> Tuple[st
+     magic_finder = MagicFinder()
+     magic_finder.visit(ast.parse(src))
+     new_srcs = []
+-    for i, line in enumerate(src.splitlines(), start=1):
++    for i, line in enumerate(src.split("\n"), start=1):
+         if i in magic_finder.magics:
+             offsets_and_magics = magic_finder.magics[i]
+             if len(offsets_and_magics) != 1:  # pragma: nocover
+@@ -273,6 +275,8 @@ def unmask_cell(src: str, replacements:
      """
      for replacement in replacements:
          src = src.replace(replacement.mask, replacement.src)
@@ -1684,7 +1709,30 @@
  
  runner = CliRunner()
  
-@@ -208,6 +211,29 @@ def test_cell_magic_with_custom_python_m
+@@ -174,6 +177,22 @@ def test_cell_magic_with_magic() -> None
+ 
+ 
+ @pytest.mark.parametrize(
++    "src, expected",
++    (
++        ("\n\n\n%time \n\n", "%time"),
++        ("  \n\t\n%%timeit -n4 \t \nx=2  \n\r\n", "%%timeit -n4\nx = 2"),
++        (
++            "  \t\n\n%%capture \nx=2 \n%config \n\n%env\n\t  \n \n\n",
++            "%%capture\nx = 2\n%config\n\n%env",
++        ),
++    ),
++)
++def test_cell_magic_with_empty_lines(src: str, expected: str) -> None:
++    result = format_cell(src, fast=True, mode=JUPYTER_MODE)
++    assert result == expected
++
++
++@pytest.mark.parametrize(
+     "mode, expected_output, expectation",
+     [
+         pytest.param(
+@@ -208,6 +227,29 @@ def test_cell_magic_with_custom_python_m
          assert result == expected_output
  
  
@@ -1714,7 +1762,7 @@
  def test_cell_magic_nested() -> None:
      src = "%%time\n%%time\n2+2"
      result = format_cell(src, fast=True, mode=JUPYTER_MODE)
-@@ -381,6 +407,45 @@ def test_entire_notebook_no_trailing_new
+@@ -381,6 +423,45 @@ def test_entire_notebook_no_trailing_new
      assert result == expected
  
  
@@ -1760,7 +1808,7 @@
  def test_entire_notebook_without_changes() -> None:
      content = read_jupyter_notebook("jupyter", "notebook_without_changes")
      with pytest.raises(NothingChanged):
-@@ -432,6 +497,30 @@ def test_ipynb_diff_with_no_change() ->
+@@ -432,6 +513,30 @@ def test_ipynb_diff_with_no_change() ->
      assert expected in result.output
  
  
