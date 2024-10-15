@@ -4,21 +4,21 @@ This is separate from pyink.ink to make dependency management easier. And this
 module will be folded to pyink.ink in the future.
 """
 
+from collections.abc import Collection, Sequence
 import dataclasses
 import difflib
-from typing import Collection, List, Sequence, Tuple
 
 
-def is_valid_line_range(lines: Tuple[int, int]) -> bool:
+def is_valid_line_range(lines: tuple[int, int]) -> bool:
     """Returns whether the line range is valid."""
     return not lines or lines[0] <= lines[1]
 
 
 def adjusted_lines(
-    lines: Collection[Tuple[int, int]],
+    lines: Collection[tuple[int, int]],
     original_source: str,
     modified_source: str,
-) -> List[Tuple[int, int]]:
+) -> list[tuple[int, int]]:
     """Returns the adjusted line ranges based on edits from the original code.
 
     This computes the new line ranges by diffing original_source and

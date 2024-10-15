@@ -3,17 +3,9 @@
 This is a separate module for easier patch management.
 """
 
+from collections.abc import Collection, Iterator, Sequence
 import re
-from typing import (
-    Collection,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Optional, Union
 
 from blib2to3.pgen2.token import ASYNC, FSTRING_START, NEWLINE, STRING
 from blib2to3.pytree import type_repr
@@ -83,7 +75,7 @@ def get_code_start(src: str) -> str:
     return ""
 
 
-def convert_unchanged_lines(src_node: Node, lines: Collection[Tuple[int, int]]):
+def convert_unchanged_lines(src_node: Node, lines: Collection[tuple[int, int]]):
     """Converts unchanged lines to STANDALONE_COMMENT.
 
     The idea is similar to how Black implements `# fmt: on/off` where it also
@@ -107,7 +99,7 @@ def convert_unchanged_lines(src_node: Node, lines: Collection[Tuple[int, int]]):
     more formatting to pass (1). However, it's hard to get it correct when
     incorrect indentations are used. So we defer this to future optimizations.
     """
-    lines_set: Set[int] = set()
+    lines_set: set[int] = set()
     for start, end in lines:
         lines_set.update(range(start, end + 1))
     visitor = _TopLevelStatementsVisitor(lines_set)
@@ -133,7 +125,7 @@ class _TopLevelStatementsVisitor(Visitor[None]):
     classes/functions/statements.
     """
 
-    def __init__(self, lines_set: Set[int]):
+    def __init__(self, lines_set: set[int]):
         self._lines_set = lines_set
 
     def visit_simple_stmt(self, node: Node) -> Iterator[None]:
@@ -179,7 +171,7 @@ class _TopLevelStatementsVisitor(Visitor[None]):
             _convert_node_to_standalone_comment(semantic_parent)
 
 
-def _convert_unchanged_line_by_line(node: Node, lines_set: Set[int]):
+def _convert_unchanged_line_by_line(node: Node, lines_set: set[int]):
     """Converts unchanged to STANDALONE_COMMENT line by line."""
     for leaf in node.leaves():
         if leaf.type != NEWLINE:
@@ -191,7 +183,7 @@ def _convert_unchanged_line_by_line(node: Node, lines_set: Set[int]):
             #   match_stmt: "match" subject_expr ':' NEWLINE INDENT case_block+ DEDENT
             # Here we need to check `subject_expr`. The `case_block+` will be
             # checked by their own NEWLINEs.
-            nodes_to_ignore: List[LN] = []
+            nodes_to_ignore: list[LN] = []
             prev_sibling = leaf.prev_sibling
             while prev_sibling:
                 nodes_to_ignore.insert(0, prev_sibling)
@@ -339,7 +331,7 @@ def _leaf_line_end(leaf: Leaf) -> int:
         return leaf.lineno + str(leaf).count("\n")
 
 
-def _get_line_range(node_or_nodes: Union[LN, List[LN]]) -> Set[int]:
+def _get_line_range(node_or_nodes: Union[LN, list[LN]]) -> set[int]:
     """Returns the line range of this node or list of nodes."""
     if isinstance(node_or_nodes, list):
         nodes = node_or_nodes

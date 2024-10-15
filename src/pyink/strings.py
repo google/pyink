@@ -5,7 +5,7 @@ Simple formatting on strings. Further string formatting code is in trans.py.
 import re
 import sys
 from functools import lru_cache
-from typing import Final, List, Match, Pattern, Tuple
+from typing import Final, Match, Pattern
 
 from pyink._width_table import WIDTH_TABLE
 from pyink.mode import Quote
@@ -44,7 +44,7 @@ def has_triple_quotes(string: str) -> bool:
     return raw_string[:3] in {'"""', "'''"}
 
 
-def lines_with_leading_tabs_expanded(s: str) -> List[str]:
+def lines_with_leading_tabs_expanded(s: str) -> list[str]:
     """
     Splits string into lines and expands only leading tabs (following the normal
     Python rules)
@@ -245,9 +245,9 @@ def normalize_string_quotes(s: str, *, preferred_quote: Quote) -> str:
 
 def normalize_fstring_quotes(
     quote: str,
-    middles: List[Leaf],
+    middles: list[Leaf],
     is_raw_fstring: bool,
-) -> Tuple[List[Leaf], str]:
+) -> tuple[list[Leaf], str]:
     """Prefer double quotes but only if it doesn't cause more escaping.
 
     Adds or removes backslashes as appropriate.

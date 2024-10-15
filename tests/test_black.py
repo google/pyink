@@ -12,7 +12,7 @@ import textwrap
 import types
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, redirect_stderr
-from dataclasses import replace
+from dataclasses import fields, replace
 from io import BytesIO
 from pathlib import Path, WindowsPath
 from platform import system
@@ -44,7 +44,7 @@ from pyink import Feature, TargetVersion
 from pyink import re_compile_maybe_verbose as compile_pattern
 from pyink.cache import FileData, get_cache_dir, get_cache_file
 from pyink.debug import DebugVisitor
-from pyink.mode import Mode, Preview
+from pyink.mode import Mode, Preview, Quote, QuoteStyle
 from pyink.output import color_diff, diff
 from pyink.parsing import ASTSafetyError
 from pyink.report import Report
@@ -906,6 +906,9 @@ class BlackTestCase(BlackBaseTestCase):
         self.check_features_used("a[*b]", {Feature.VARIADIC_GENERICS})
         self.check_features_used("a[x, *y(), z] = t", {Feature.VARIADIC_GENERICS})
         self.check_features_used("def fn(*args: *T): pass", {Feature.VARIADIC_GENERICS})
+        self.check_features_used(
+            "def fn(*args: *tuple[*T]): pass", {Feature.VARIADIC_GENERICS}
+        )
 
         self.check_features_used("with a: pass", set())
         self.check_features_used("with a, b: pass", set())
@@ -2154,8 +2157,9 @@ class TestCaching:
     @event_loop()
     def test_cache_multiple_files(self) -> None:
         mode = DEFAULT_MODE
-        with cache_dir() as workspace, patch(
-            "concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
         ):
             one = (workspace / "one.py").resolve()
             one.write_text("print('hello')", encoding="utf-8")
@@ -2177,9 +2181,10 @@ class TestCaching:
         with cache_dir() as workspace:
             src = (workspace / "test.py").resolve()
             src.write_text("print('hello')", encoding="utf-8")
-            with patch.object(pyink.Cache, "read") as read_cache, patch.object(
-                pyink.Cache, "write"
-            ) as write_cache:
+            with (
+                patch.object(pyink.Cache, "read") as read_cache,
+                patch.object(pyink.Cache, "write") as write_cache,
+            ):
                 cmd = [str(src), "--diff"]
                 if color:
                     cmd.append("--color")
@@ -2308,8 +2313,9 @@ class TestCaching:
     @event_loop()
     def test_failed_formatting_does_not_get_cached(self) -> None:
         mode = DEFAULT_MODE
-        with cache_dir() as workspace, patch(
-            "concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
         ):
             failing = (workspace / "failing.py").resolve()
             failing.write_text("not actually python", encoding="utf-8")
@@ -2340,6 +2346,49 @@ class TestCaching:
             assert not one.is_changed(path)
             two = pyink.Cache.read(short_mode)
             assert two.is_changed(path)
+
+    def test_cache_key(self) -> None:
+        # Test that all members of the mode enum affect the cache key.
+        for field in fields(Mode):
+            values: List[Any]
+            if field.name == "target_versions":
+                values = [
+                    {TargetVersion.PY312},
+                    {TargetVersion.PY313},
+                ]
+            elif field.name == "python_cell_magics":
+                values = [{"magic1"}, {"magic2"}]
+            elif field.name == "enabled_features":
+                # If you are looking to remove one of these features, just
+                # replace it with any other feature.
+                values = [
+                    {Preview.docstring_check_for_newline},
+                    {Preview.hex_codes_in_unicode_sequences},
+                ]
+            elif field.type is Quote:
+                values = list(Quote)
+            elif field.type is QuoteStyle:
+                values = list(QuoteStyle)
+            elif field.name == "pyink_indentation":
+                values = [2, 4]
+            elif field.name == "pyink_ipynb_indentation":
+                values = [1, 2]
+            elif field.name == "pyink_annotation_pragmas":
+                values = [
+                    ("type: ignore",),
+                    ("noqa", "pylint:", "pytype: ignore", "@param"),
+                ]
+            elif field.type is bool:
+                values = [True, False]
+            elif field.type is int:
+                values = [1, 2]
+            else:
+                raise AssertionError(
+                    f"Unhandled field type: {field.type} for field {field.name}"
+                )
+            modes = [replace(DEFAULT_MODE, **{field.name: value}) for value in values]
+            keys = [mode.get_cache_key() for mode in modes]
+            assert len(set(keys)) == len(modes)
 
 
 def assert_collected_sources(
