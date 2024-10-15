@@ -6,6 +6,22 @@ All notable changes to Pyink are recorded here.
 
 * Nothing notable unreleased.
 
+## 24.10.0
+
+This release is based on _Black_ v24.10.0.
+
+* Add CLI option `--pyink-ipynb-indentation` to specify the number of spaces
+  with which JSON content of Jupyter notebooks will be formatted.
+* Add CLI option `--pyink-annotation-pragmas` to specify a list of annotation
+  pragmas. Whenever any of them appears in a comment that line won't be split
+  into multiple lines or joined with any other line.
+* Fix formatting of Jupyter notebook cells with magic methods and any empty
+  lines at the beginning or end of a cell.
+
+## 24.8.0
+
+This release is based on _Black_ v24.8.0.
+
 ## 24.3.0
 
 This release is based on _Black_ v24.3.0.
