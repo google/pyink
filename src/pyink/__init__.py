@@ -1,16 +1,16 @@
-from contextlib import contextmanager
-from dataclasses import replace
-from datetime import datetime, timezone
-from enum import Enum
 import io
 import json
-from json.decoder import JSONDecodeError
-from pathlib import Path
 import platform
 import re
 import sys
 import tokenize
 import traceback
+from contextlib import contextmanager
+from dataclasses import replace
+from datetime import datetime, timezone
+from enum import Enum
+from json.decoder import JSONDecodeError
+from pathlib import Path
 from typing import (
     Any,
     Collection,
@@ -31,6 +31,7 @@ from click.core import ParameterSource
 from mypy_extensions import mypyc_attr
 from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPatternError
+
 from _pyink_version import version as __version__
 from pyink.cache import Cache
 from pyink.comments import normalize_fmt_off
@@ -63,7 +64,7 @@ from pyink.handle_ipynb_magics import (
 )
 from pyink.linegen import LN, LineGenerator, transform_line
 from pyink.lines import EmptyLineTracker, LinesBlock
-from pyink.mode import FUTURE_FLAG_TO_FEATURE, Feature, VERSION_TO_FEATURES
+from pyink.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature
 from pyink.mode import Mode as Mode  # re-exported
 from pyink.mode import (
     DEFAULT_ANNOTATION_PRAGMAS,
@@ -266,26 +267,25 @@ def validate_regex(
     multiple=True,
     help=(
         "Python versions that should be supported by Black's output. You should"
-        " include all versions that your code supports. By default, Black will"
-        " infer target versions from the project metadata in pyproject.toml. If"
-        " this does not yield conclusive results, Black will use per-file"
-        " auto-detection."
+        " include all versions that your code supports. By default, Black will infer"
+        " target versions from the project metadata in pyproject.toml. If this does"
+        " not yield conclusive results, Black will use per-file auto-detection."
     ),
 )
 @click.option(
     "--pyi",
     is_flag=True,
     help=(
-        "Format all input files like typing stubs regardless of file extension."
-        " This is useful when piping source on standard input."
+        "Format all input files like typing stubs regardless of file extension. This"
+        " is useful when piping source on standard input."
     ),
 )
 @click.option(
     "--ipynb",
     is_flag=True,
     help=(
-        "Format all input files like Jupyter Notebooks regardless of file"
-        " extension. This is useful when piping source on standard input."
+        "Format all input files like Jupyter Notebooks regardless of file extension."
+        " This is useful when piping source on standard input."
     ),
 )
 @click.option(
@@ -320,17 +320,17 @@ def validate_regex(
     "--preview",
     is_flag=True,
     help=(
-        "Enable potentially disruptive style changes that may be added to"
-        " Black's main functionality in the next major release."
+        "Enable potentially disruptive style changes that may be added to Black's main"
+        " functionality in the next major release."
     ),
 )
 @click.option(
     "--unstable",
     is_flag=True,
     help=(
-        "Enable potentially disruptive style changes that have known bugs or"
-        " are not currently expected to make it into the stable style Black's"
-        " next major release. Implies --preview."
+        "Enable potentially disruptive style changes that have known bugs or are not"
+        " currently expected to make it into the stable style Black's next major"
+        " release. Implies --preview."
     ),
 )
 @click.option(
@@ -395,18 +395,17 @@ def validate_regex(
     "--check",
     is_flag=True,
     help=(
-        "Don't write the files back, just return the status. Return code 0"
-        " means nothing would change. Return code 1 means some files would be"
-        " reformatted. Return code 123 means there was an internal error."
+        "Don't write the files back, just return the status. Return code 0 means"
+        " nothing would change. Return code 1 means some files would be reformatted."
+        " Return code 123 means there was an internal error."
     ),
 )
 @click.option(
     "--diff",
     is_flag=True,
     help=(
-        "Don't write the files back, just output a diff to indicate what"
-        " changes Black would've made. They are printed to stdout so capturing"
-        " them is simple."
+        "Don't write the files back, just output a diff to indicate what changes"
+        " Black would've made. They are printed to stdout so capturing them is simple."
     ),
 )
 @click.option(
@@ -419,11 +418,11 @@ def validate_regex(
     multiple=True,
     metavar="START-END",
     help=(
-        "When specified, Black will try its best to only format these lines."
-        " This option can be specified multiple times, and a union of the lines"
-        " will be formatted. Each range must be specified as two integers"
-        " connected by a `-`: `<START>-<END>`. The `<START>` and `<END>`"
-        " integer indices are 1-based and inclusive on both ends."
+        "When specified, Black will try its best to only format these lines. This"
+        " option can be specified multiple times, and a union of the lines will be"
+        " formatted. Each range must be specified as two integers connected by a `-`:"
+        " `<START>-<END>`. The `<START>` and `<END>` integer indices are 1-based and"
+        " inclusive on both ends."
     ),
     default=(),
 )
@@ -431,9 +430,9 @@ def validate_regex(
     "--fast/--safe",
     is_flag=True,
     help=(
-        "By default, Black performs an AST safety check after formatting your"
-        " code. The --fast flag turns off this check and the --safe flag"
-        " explicitly enables it. [default: --safe]"
+        "By default, Black performs an AST safety check after formatting your code."
+        " The --fast flag turns off this check and the --safe flag explicitly enables"
+        " it. [default: --safe]"
     ),
 )
 @click.option(
@@ -443,8 +442,8 @@ def validate_regex(
         "Require a specific version of Black to be running. This is useful for"
         " ensuring that all contributors to your project are using the same"
         " version, because different versions of Black may format code a little"
-        " differently. This option can be set in a configuration file for"
-        " consistent results across environments."
+        " differently. This option can be set in a configuration file for consistent"
+        " results across environments."
     ),
 )
 @click.option(
@@ -452,12 +451,11 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "A regular expression that matches files and directories that should"
-        " be excluded on recursive searches. An empty value means no paths are"
-        " excluded. Use forward slashes for directories on all platforms"
-        " (Windows, too). By default, Black also ignores all paths listed in"
-        " .gitignore. Changing this value will override all default"
-        f" exclusions. [default: {DEFAULT_EXCLUDES}]"
+        "A regular expression that matches files and directories that should be"
+        " excluded on recursive searches. An empty value means no paths are excluded."
+        " Use forward slashes for directories on all platforms (Windows, too)."
+        " By default, Black also ignores all paths listed in .gitignore. Changing this"
+        f" value will override all default exclusions. [default: {DEFAULT_EXCLUDES}]"
     ),
     show_default=False,
 )
@@ -466,8 +464,8 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "Like --exclude, but adds additional files and directories on top of"
-        " the default values instead of overriding them."
+        "Like --exclude, but adds additional files and directories on top of the"
+        " default values instead of overriding them."
     ),
 )
 @click.option(
@@ -475,10 +473,10 @@ def validate_regex(
     type=str,
     callback=validate_regex,
     help=(
-        "Like --exclude, but files and directories matching this regex will be"
-        " excluded even when they are passed explicitly as arguments. This is"
-        " useful when invoking Black programmatically on changed files, such as"
-        " in a pre-commit hook or editor plugin."
+        "Like --exclude, but files and directories matching this regex will be excluded"
+        " even when they are passed explicitly as arguments. This is useful when"
+        " invoking Black programmatically on changed files, such as in a pre-commit"
+        " hook or editor plugin."
     ),
 )
 @click.option(
@@ -486,9 +484,9 @@ def validate_regex(
     type=str,
     is_eager=True,
     help=(
-        "The name of the file when passing it through stdin. Useful to make"
-        " sure Black will respect the --force-exclude option on some editors"
-        " that rely on using stdin."
+        "The name of the file when passing it through stdin. Useful to make sure Black"
+        " will respect the --force-exclude option on some editors that rely on using"
+        " stdin."
     ),
 )
 @click.option(
@@ -498,10 +496,10 @@ def validate_regex(
     callback=validate_regex,
     help=(
         "A regular expression that matches files and directories that should be"
-        " included on recursive searches. An empty value means all files are"
-        " included regardless of the name. Use forward slashes for directories"
-        " on all platforms (Windows, too). Overrides all exclusions, including"
-        " from .gitignore and command line options."
+        " included on recursive searches. An empty value means all files are included"
+        " regardless of the name. Use forward slashes for directories on all platforms"
+        " (Windows, too). Overrides all exclusions, including from .gitignore and"
+        " command line options."
     ),
     show_default=True,
 )
@@ -511,10 +509,10 @@ def validate_regex(
     type=click.IntRange(min=1),
     default=None,
     help=(
-        "When Black formats multiple files, it may use a process pool to speed"
-        " up formatting. This option controls the number of parallel workers."
-        " This can also be specified via the PYINK_NUM_WORKERS environment"
-        " variable. Defaults to the number of CPUs in the system."
+        "When Black formats multiple files, it may use a process pool to speed up"
+        " formatting. This option controls the number of parallel workers. This can"
+        " also be specified via the PYINK_NUM_WORKERS environment variable. Defaults"
+        " to the number of CPUs in the system."
     ),
 )
 @click.option(
@@ -522,8 +520,8 @@ def validate_regex(
     "--quiet",
     is_flag=True,
     help=(
-        "Stop emitting all non-critical output. Error messages will still be"
-        " emitted (which can silenced by 2>/dev/null)."
+        "Stop emitting all non-critical output. Error messages will still be emitted"
+        " (which can silenced by 2>/dev/null)."
     ),
 )
 @click.option(
@@ -539,20 +537,15 @@ def validate_regex(
 @click.version_option(
     version=__version__,
     message=(
-        "%(prog)s, %(version)s (compiled:"
-        f" {'yes' if COMPILED else 'no'})\nPython"
-        f" ({platform.python_implementation()}) {platform.python_version()}"
+        f"%(prog)s, %(version)s (compiled: {'yes' if COMPILED else 'no'})\n"
+        f"Python ({platform.python_implementation()}) {platform.python_version()}"
     ),
 )
 @click.argument(
     "src",
     nargs=-1,
     type=click.Path(
-        exists=True,
-        file_okay=True,
-        dir_okay=True,
-        readable=True,
-        allow_dash=True,
+        exists=True, file_okay=True, dir_okay=True, readable=True, allow_dash=True
     ),
     is_eager=True,
     metavar="SRC ...",
