@@ -28,7 +28,12 @@ pytest.importorskip("IPython", reason="IPython is an optional dependency")
 pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
 
 JUPYTER_MODE = Mode(is_ipynb=True)
-PYINK_JUPYTER_MODE = Mode(is_ipynb=True, pyink_indentation=2, pyink_ipynb_indentation=2)
+PYINK_JUPYTER_MODE = Mode(
+    is_ipynb=True,
+    pyink_indentation=2,
+    pyink_ipynb_indentation=2,
+    pyink_ipynb_unicode_escape=True,
+)
 
 EMPTY_CONFIG = DATA_DIR / "empty_pyproject.toml"
 PYINK_OVERRIDE_CONFIG = DATA_DIR / "pyink_configs" / "overrides.toml"
@@ -445,8 +450,8 @@ def test_entire_notebook_with_pyink_overrides() -> None:
         '        "%%time\\n",\n'
         '        "\\n",\n'
         '        "a = 1\\n",\n'
-        '        "if a == 1:\\n",\n'
-        '        "    print(\\"\\")"\n'
+        '        "if a \\u003c 1 or a \\u003e 1:\\n",\n'
+        '        "    print(\\"\\u0026\\u003c\\u003e\\")"\n'
         "      ]\n"
         "    }\n"
         "  ],\n"
@@ -522,18 +527,18 @@ def test_ipynb_diff_with_pyink_overrides() -> None:
             f"--config={PYINK_OVERRIDE_CONFIG}",
         ],
     )
-    expected = """00:00:cell_1
+    expected = """cell_1
 @@ -1,6 +1,5 @@
 - %%time
 +%%time
  
 -a=1
--if a  ==1:
--    print("")
+-if a  <1 or a>1:
+-    print("&<>")
 -
 +a = 1
-+if a == 1:
-+  print("")"""
++if a < 1 or a > 1:
++  print("&<>")"""
     assert expected in result.output
 
 

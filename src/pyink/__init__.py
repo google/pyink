@@ -371,6 +371,14 @@ def validate_regex(
     ),
 )
 @click.option(
+    "--pyink-ipynb-unicode-escape",
+    is_flag=True,
+    help=(
+        "Enable serialization of Jupyter notebook content into a JSON form"
+        " where characters <, >, and & are unicode escaped."
+    ),
+)
+@click.option(
     "--pyink-annotation-pragmas",
     type=str,
     multiple=True,
@@ -587,6 +595,7 @@ def main(  # noqa: C901
     pyink: bool,
     pyink_indentation: str,
     pyink_ipynb_indentation: str,
+    pyink_ipynb_unicode_escape: bool,
     pyink_annotation_pragmas: list[str],
     pyink_use_majority_quotes: bool,
     quiet: bool,
@@ -698,6 +707,7 @@ def main(  # noqa: C901
         is_pyink=pyink,
         pyink_indentation=int(pyink_indentation),
         pyink_ipynb_indentation=int(pyink_ipynb_indentation),
+        pyink_ipynb_unicode_escape=pyink_ipynb_unicode_escape,
         pyink_annotation_pragmas=(
             tuple(pyink_annotation_pragmas) or DEFAULT_ANNOTATION_PRAGMAS
         ),
@@ -1238,6 +1248,8 @@ def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileCon
     dst_contents = json.dumps(
         nb, indent=mode.pyink_ipynb_indentation, ensure_ascii=False
     )
+    if mode.pyink_ipynb_unicode_escape:
+        dst_contents = ink.unicode_escape_json(dst_contents)
     if trailing_newline:
         dst_contents = dst_contents + "\n"
     return dst_contents

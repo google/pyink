@@ -274,6 +274,7 @@ class Mode:
     is_pyink: bool = False
     pyink_indentation: Literal[2, 4] = 4
     pyink_ipynb_indentation: Literal[1, 2] = 1
+    pyink_ipynb_unicode_escape: bool = False
     pyink_annotation_pragmas: tuple[str, ...] = DEFAULT_ANNOTATION_PRAGMAS
     unstable: bool = False
     enabled_features: set[Preview] = field(default_factory=set)
@@ -331,6 +332,7 @@ class Mode:
             str(int(self.is_pyink)),
             str(self.pyink_indentation),
             str(self.pyink_ipynb_indentation),
+            str(int(self.pyink_ipynb_unicode_escape)),
             sha256(str(self.pyink_annotation_pragmas).encode()).hexdigest()[:8],
             features_and_magics,
         ]
