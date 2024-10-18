@@ -75,6 +75,26 @@ def get_code_start(src: str) -> str:
     return ""
 
 
+def unicode_escape_json(src: str) -> str:
+    """Escapes problematic unicode characters in JSON string.
+
+    This mimicks the implementation in Colab backend and converts characters
+    <, >, and & to their unicode representations. More info in
+    go/unicode-escaping-in-colab.
+
+    Args:
+      src: A serialized JSON string.
+
+    Returns:
+      A serialized JSON string with unicode escaped characters.
+    """
+    def _match_to_unicode(match: re.Match[str]) -> str:
+        char = match.group(0)
+        return f"\\u{hex(ord(char))[2:].zfill(4)}"
+
+    return re.sub(r"[<>&]", _match_to_unicode, src)
+
+
 def convert_unchanged_lines(src_node: Node, lines: Collection[tuple[int, int]]):
     """Converts unchanged lines to STANDALONE_COMMENT.
 
