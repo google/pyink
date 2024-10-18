@@ -2376,7 +2376,7 @@ class TestCaching:
             elif field.name == "pyink_annotation_pragmas":
                 values = [
                     ("type: ignore",),
-                    ("noqa", "pylint:", "pytype: ignore", "@param"),
+                    ("noqa", "pylint:", "pytype: disable", "@param"),
                 ]
             elif field.type is bool:
                 values = [True, False]
