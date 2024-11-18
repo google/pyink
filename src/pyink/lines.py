@@ -278,6 +278,13 @@ class Line:
                     return True
         return False
 
+    def contains_pragma_comments(self) -> bool:
+        for comments in self.comments.values():
+            for comment in comments:
+                if is_pragma_comment(comment, self.mode):
+                    return True
+        return False
+
     def contains_uncollapsable_pragma_comments(self) -> bool:
         ignored_ids = set()
         try:

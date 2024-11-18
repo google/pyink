@@ -4,11 +4,13 @@ This is a separate module for easier patch management.
 """
 
 from collections.abc import Collection, Iterator, Sequence
+import copy
 import re
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from blib2to3.pgen2.token import ASYNC, FSTRING_START, NEWLINE, STRING
-from blib2to3.pytree import type_repr
+from blib2to3.pytree import NL, type_repr
+from pyink.lines import Line
 from pyink.mode import Quote
 from pyink.nodes import LN, Leaf, Node, STANDALONE_COMMENT, Visitor, syms
 from pyink.strings import STRING_PREFIX_CHARS
@@ -93,6 +95,37 @@ def unicode_escape_json(src: str) -> str:
         return f"\\u{hex(ord(char))[2:].zfill(4)}"
 
     return re.sub(r"[<>&]", _match_to_unicode, src)
+
+
+def deepcopy_line(line: Line) -> Line:
+    """Calculates a deep copy of a Line object.
+
+    Deep-copying a Line object is not trivial because it contains various
+    dictionaries mapping id(NL) -> NL, where NL stands for Node or Leaf. Because
+    all objects are copied, also the ids in dictionaries need to be updated.
+
+    The function first finds all NL objects and calculates the id mapping. Then
+    it updates all dictionaries.
+
+    Args:
+      line: The Line object to copy.
+
+    Returns:
+      A deep copy of the Line object with updated references.
+    """
+    memo: dict[int, Any] = {}
+    line_copy = copy.deepcopy(line, memo=memo)
+
+    line_copy.comments = {
+        id(memo[leaf_id]): comment_leaves
+        for leaf_id, comment_leaves in line_copy.comments.items()
+    }
+    line_copy.bracket_tracker.delimiters = {
+        id(memo[leaf_id]): priority
+        for leaf_id, priority in line_copy.bracket_tracker.delimiters.items()
+    }
+
+    return line_copy
 
 
 def convert_unchanged_lines(src_node: Node, lines: Collection[tuple[int, int]]):
