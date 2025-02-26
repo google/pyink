@@ -3,7 +3,8 @@ blib2to3 Node/Leaf transformation-related utility functions.
 """
 
 import sys
-from typing import Final, Generic, Iterator, Literal, Optional, TypeVar, Union
+from collections.abc import Iterator
+from typing import Final, Generic, Literal, Optional, TypeVar, Union
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard
@@ -14,7 +15,7 @@ from mypy_extensions import mypyc_attr
 
 from pyink import ink_comments
 from pyink.cache import CACHE_DIR
-from pyink.mode import Mode, Preview
+from pyink.mode import Mode
 from pyink.strings import get_string_prefix, has_triple_quotes
 from blib2to3 import pygram
 from blib2to3.pgen2 import token
@@ -244,13 +245,7 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool, mode: Mode) -> str:  # no
         elif (
             prevp.type == token.STAR
             and parent_type(prevp) == syms.star_expr
-            and (
-                parent_type(prevp.parent) == syms.subscriptlist
-                or (
-                    Preview.pep646_typed_star_arg_type_var_tuple in mode
-                    and parent_type(prevp.parent) == syms.tname_star
-                )
-            )
+            and parent_type(prevp.parent) in (syms.subscriptlist, syms.tname_star)
         ):
             # No space between typevar tuples or unpacking them.
             return NO
@@ -551,7 +546,7 @@ def is_arith_like(node: LN) -> bool:
     }
 
 
-def is_docstring(node: NL, mode: Mode) -> bool:
+def is_docstring(node: NL) -> bool:
     if isinstance(node, Leaf):
         if node.type != token.STRING:
             return False
@@ -561,8 +556,7 @@ def is_docstring(node: NL, mode: Mode) -> bool:
             return False
 
     if (
-        Preview.unify_docstring_detection in mode
-        and node.parent
+        node.parent
         and node.parent.type == syms.simple_stmt
         and not node.parent.prev_sibling
         and node.parent.parent
@@ -619,6 +613,28 @@ def is_tuple_containing_walrus(node: LN) -> bool:
         return False
 
     return any(child.type == syms.namedexpr_test for child in gexp.children)
+
+
+def is_tuple_containing_star(node: LN) -> bool:
+    """Return True if `node` holds a tuple that contains a star operator."""
+    if node.type != syms.atom:
+        return False
+    gexp = unwrap_singleton_parenthesis(node)
+    if gexp is None or gexp.type != syms.testlist_gexp:
+        return False
+
+    return any(child.type == syms.star_expr for child in gexp.children)
+
+
+def is_generator(node: LN) -> bool:
+    """Return True if `node` holds a generator."""
+    if node.type != syms.atom:
+        return False
+    gexp = unwrap_singleton_parenthesis(node)
+    if gexp is None or gexp.type != syms.testlist_gexp:
+        return False
+
+    return any(child.type == syms.old_comp_for for child in gexp.children)
 
 
 def is_one_sequence_between(

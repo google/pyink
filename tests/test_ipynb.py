@@ -1,9 +1,9 @@
 import contextlib
 import pathlib
 import re
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as does_not_raise
 from dataclasses import replace
-from typing import ContextManager
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -221,7 +221,7 @@ def test_cell_magic_with_empty_lines(src: str, expected: str) -> None:
     ],
 )
 def test_cell_magic_with_custom_python_magic(
-    mode: Mode, expected_output: str, expectation: ContextManager[object]
+    mode: Mode, expected_output: str, expectation: AbstractContextManager[object]
 ) -> None:
     with expectation:
         result = format_cell(
@@ -619,8 +619,8 @@ def test_ipynb_and_pyi_flags() -> None:
 
 
 def test_unable_to_replace_magics(monkeypatch: MonkeyPatch) -> None:
-    src = "%%time\na = 'foo'"
-    monkeypatch.setattr("pyink.handle_ipynb_magics.TOKEN_HEX", lambda _: "foo")
+    src = '%%time\na = b"foo"'
+    monkeypatch.setattr("secrets.token_hex", lambda _: "foo")
     with pytest.raises(
         AssertionError, match="Black was not able to replace IPython magic"
     ):

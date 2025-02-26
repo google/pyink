@@ -4,10 +4,11 @@ Generating lines of code.
 
 import re
 import sys
+from collections.abc import Collection, Iterator
 from dataclasses import replace
 from enum import Enum, auto
 from functools import partial, wraps
-from typing import Collection, Iterator, Optional, Union, cast
+from typing import Optional, Union, cast
 
 if sys.version_info < (3, 8):
     from typing_extensions import Final, Literal
@@ -51,6 +52,7 @@ from pyink.nodes import (
     is_atom_with_invisible_parens,
     is_docstring,
     is_empty_tuple,
+    is_generator,
     is_lpar_token,
     is_multiline_string,
     is_name_token,
@@ -61,6 +63,7 @@ from pyink.nodes import (
     is_rpar_token,
     is_stub_body,
     is_stub_suite,
+    is_tuple_containing_star,
     is_tuple_containing_walrus,
     is_vararg,
     is_walrus_assignment,
@@ -70,7 +73,7 @@ from pyink.nodes import (
 )
 from pyink.numerics import normalize_numeric_literal
 from pyink.strings import (
-    fix_docstring,
+    fix_multiline_docstring,
     get_string_prefix,
     normalize_string_prefix,
     normalize_string_quotes,
@@ -452,13 +455,10 @@ class LineGenerator(Visitor[Line]):
         yield from self.visit_default(node)
 
     def visit_STRING(self, leaf: Leaf) -> Iterator[Line]:
-        if (
-            Preview.hex_codes_in_unicode_sequences in self.mode
-            and not self.mode.is_pyink
-        ):
+        if not self.mode.is_pyink:
             normalize_unicode_escape_sequences(leaf)
 
-        if is_docstring(leaf, self.mode) and not re.search(r"\\\s*\n", leaf.value):
+        if is_docstring(leaf) and not re.search(r"\\\s*\n", leaf.value):
             # We're ignoring docstrings with backslash newline escapes because changing
             # indentation of those changes the AST representation of the code.
             if self.mode.string_normalization:
@@ -487,7 +487,7 @@ class LineGenerator(Visitor[Line]):
             indent = " " * self.current_line.indentation_spaces()
 
             if is_multiline_string(leaf):
-                docstring = fix_docstring(docstring, indent)
+                docstring = fix_multiline_docstring(docstring, indent)
             else:
                 docstring = docstring.strip()
 
@@ -537,10 +537,7 @@ class LineGenerator(Visitor[Line]):
                     and len(indent) + quote_len <= self.mode.line_length
                     and not has_trailing_backslash
                 ):
-                    if (
-                        Preview.docstring_check_for_newline in self.mode
-                        and leaf.value[-1 - quote_len] == "\n"
-                    ):
+                    if leaf.value[-1 - quote_len] == "\n":
                         leaf.value = prefix + quote + docstring + quote
                     else:
                         leaf.value = prefix + quote + docstring + "\n" + indent + quote
@@ -559,6 +556,19 @@ class LineGenerator(Visitor[Line]):
     def visit_NUMBER(self, leaf: Leaf) -> Iterator[Line]:
         normalize_numeric_literal(leaf)
         yield from self.visit_default(leaf)
+
+    def visit_atom(self, node: Node) -> Iterator[Line]:
+        """Visit any atom"""
+        if len(node.children) == 3:
+            first = node.children[0]
+            last = node.children[-1]
+            if (first.type == token.LSQB and last.type == token.RSQB) or (
+                first.type == token.LBRACE and last.type == token.RBRACE
+            ):
+                # Lists or sets of one item
+                maybe_make_parens_invisible_in_atom(node.children[1], parent=node)
+
+        yield from self.visit_default(node)
 
     def visit_fstring(self, node: Node) -> Iterator[Line]:
         # currently we don't want to format and split f-strings at all.
@@ -638,8 +648,7 @@ class LineGenerator(Visitor[Line]):
         # PEP 634
         self.visit_match_stmt = self.visit_match_case
         self.visit_case_block = self.visit_match_case
-        if Preview.remove_redundant_guard_parens in self.mode:
-            self.visit_guard = partial(v, keywords=Ø, parens={"if"})
+        self.visit_guard = partial(v, keywords=Ø, parens={"if"})
 
 
 def _hugging_power_ops_line_to_string(
@@ -832,26 +841,29 @@ def left_hand_split(
     Prefer RHS otherwise.  This is why this function is not symmetrical with
     :func:`right_hand_split` which also handles optional parentheses.
     """
-    tail_leaves: list[Leaf] = []
-    body_leaves: list[Leaf] = []
-    head_leaves: list[Leaf] = []
-    current_leaves = head_leaves
-    matching_bracket: Optional[Leaf] = None
-    for leaf in line.leaves:
-        if (
-            current_leaves is body_leaves
-            and leaf.type in CLOSING_BRACKETS
-            and leaf.opening_bracket is matching_bracket
-            and isinstance(matching_bracket, Leaf)
-        ):
-            ensure_visible(leaf)
-            ensure_visible(matching_bracket)
-            current_leaves = tail_leaves if body_leaves else head_leaves
-        current_leaves.append(leaf)
-        if current_leaves is head_leaves:
-            if leaf.type in OPENING_BRACKETS:
-                matching_bracket = leaf
-                current_leaves = body_leaves
+    for leaf_type in [token.LPAR, token.LSQB]:
+        tail_leaves: list[Leaf] = []
+        body_leaves: list[Leaf] = []
+        head_leaves: list[Leaf] = []
+        current_leaves = head_leaves
+        matching_bracket: Optional[Leaf] = None
+        for leaf in line.leaves:
+            if (
+                current_leaves is body_leaves
+                and leaf.type in CLOSING_BRACKETS
+                and leaf.opening_bracket is matching_bracket
+                and isinstance(matching_bracket, Leaf)
+            ):
+                ensure_visible(leaf)
+                ensure_visible(matching_bracket)
+                current_leaves = tail_leaves if body_leaves else head_leaves
+            current_leaves.append(leaf)
+            if current_leaves is head_leaves:
+                if leaf.type == leaf_type:
+                    matching_bracket = leaf
+                    current_leaves = body_leaves
+        if matching_bracket and tail_leaves:
+            break
     if not matching_bracket or not tail_leaves:
         raise CannotSplit("No brackets found")
 
@@ -1017,29 +1029,7 @@ def _maybe_split_omitting_optional_parens(
         try:
             # The RHSResult Omitting Optional Parens.
             rhs_oop = _first_right_hand_split(line, omit=omit)
-            is_split_right_after_equal = (
-                len(rhs.head.leaves) >= 2 and rhs.head.leaves[-2].type == token.EQUAL
-            )
-            rhs_head_contains_brackets = any(
-                leaf.type in BRACKETS for leaf in rhs.head.leaves[:-1]
-            )
-            # the -1 is for the ending optional paren
-            rhs_head_short_enough = is_line_short_enough(
-                rhs.head, mode=replace(mode, line_length=mode.line_length - 1)
-            )
-            rhs_head_explode_blocked_by_magic_trailing_comma = (
-                rhs.head.magic_trailing_comma is None
-            )
-            if (
-                not (
-                    is_split_right_after_equal
-                    and rhs_head_contains_brackets
-                    and rhs_head_short_enough
-                    and rhs_head_explode_blocked_by_magic_trailing_comma
-                )
-                # the omit optional parens split is preferred by some other reason
-                or _prefer_split_rhs_oop_over_rhs(rhs_oop, rhs, mode)
-            ):
+            if _prefer_split_rhs_oop_over_rhs(rhs_oop, rhs, mode):
                 yield from _maybe_split_omitting_optional_parens(
                     rhs_oop, line, mode, features=features, omit=omit
                 )
@@ -1050,8 +1040,15 @@ def _maybe_split_omitting_optional_parens(
             if line.is_chained_assignment:
                 pass
 
-            elif not can_be_split(rhs.body) and not is_line_short_enough(
-                rhs.body, mode=mode
+            elif (
+                not can_be_split(rhs.body)
+                and not is_line_short_enough(rhs.body, mode=mode)
+                and not (
+                    Preview.wrap_long_dict_values_in_parens
+                    and rhs.opening_bracket.parent
+                    and rhs.opening_bracket.parent.parent
+                    and rhs.opening_bracket.parent.parent.type == syms.dictsetmaker
+                )
             ):
                 raise CannotSplit(
                     "Splitting failed, body is still too long and can't be split."
@@ -1082,6 +1079,44 @@ def _prefer_split_rhs_oop_over_rhs(
     Returns whether we should prefer the result from a split omitting optional parens
     (rhs_oop) over the original (rhs).
     """
+    # contains unsplittable type ignore
+    if (
+        rhs_oop.head.contains_unsplittable_type_ignore()
+        or rhs_oop.body.contains_unsplittable_type_ignore()
+        or rhs_oop.tail.contains_unsplittable_type_ignore()
+    ):
+        return True
+
+    # Retain optional parens around dictionary values
+    if (
+        Preview.wrap_long_dict_values_in_parens
+        and rhs.opening_bracket.parent
+        and rhs.opening_bracket.parent.parent
+        and rhs.opening_bracket.parent.parent.type == syms.dictsetmaker
+        and rhs.body.bracket_tracker.delimiters
+    ):
+        # Unless the split is inside the key
+        return any(leaf.type == token.COLON for leaf in rhs_oop.tail.leaves)
+
+    # the split is right after `=`
+    if not (len(rhs.head.leaves) >= 2 and rhs.head.leaves[-2].type == token.EQUAL):
+        return True
+
+    # the left side of assignment contains brackets
+    if not any(leaf.type in BRACKETS for leaf in rhs.head.leaves[:-1]):
+        return True
+
+    # the left side of assignment is short enough (the -1 is for the ending optional
+    # paren)
+    if not is_line_short_enough(
+        rhs.head, mode=replace(mode, line_length=mode.line_length - 1)
+    ):
+        return True
+
+    # the left side of assignment won't explode further because of magic trailing comma
+    if rhs.head.magic_trailing_comma is not None:
+        return True
+
     # If we have multiple targets, we prefer more `=`s on the head vs pushing them to
     # the body
     rhs_head_equal_count = [leaf.type for leaf in rhs.head.leaves].count(token.EQUAL)
@@ -1109,10 +1144,6 @@ def _prefer_split_rhs_oop_over_rhs(
             # the first line is short enough
             and is_line_short_enough(rhs_oop.head, mode=mode)
         )
-        # contains unsplittable type ignore
-        or rhs_oop.head.contains_unsplittable_type_ignore()
-        or rhs_oop.body.contains_unsplittable_type_ignore()
-        or rhs_oop.tail.contains_unsplittable_type_ignore()
     )
 
 
@@ -1157,12 +1188,7 @@ def _ensure_trailing_comma(
         return False
     # Don't add commas if we already have any commas
     if any(
-        leaf.type == token.COMMA
-        and (
-            Preview.typed_params_trailing_comma not in original.mode
-            or not is_part_of_annotation(leaf)
-        )
-        for leaf in leaves
+        leaf.type == token.COMMA and not is_part_of_annotation(leaf) for leaf in leaves
     ):
         return False
 
@@ -1443,11 +1469,7 @@ def normalize_invisible_parens(  # noqa: C901
             )
 
         # Add parentheses around if guards in case blocks
-        if (
-            isinstance(child, Node)
-            and child.type == syms.guard
-            and Preview.parens_for_long_if_clauses_in_case_block in mode
-        ):
+        if isinstance(child, Node) and child.type == syms.guard:
             normalize_invisible_parens(
                 child, parens_after={"if"}, mode=mode, features=features
             )
@@ -1658,7 +1680,7 @@ def remove_with_parens(node: Node, parent: Node, mode: Mode) -> None:
 def maybe_make_parens_invisible_in_atom(
     node: LN,
     parent: LN,
-    mode: Mode,
+    mode: Optional[Mode] = None,
     remove_brackets_around_comma: bool = False,
 ) -> bool:
     """If it's safe, make the parens in the atom `node` invisible, recursively.
@@ -1680,6 +1702,8 @@ def maybe_make_parens_invisible_in_atom(
             and max_delimiter_priority_in_atom(node) >= COMMA_PRIORITY
         )
         or is_tuple_containing_walrus(node)
+        or is_tuple_containing_star(node)
+        or is_generator(node)
     ):
         return False
 
@@ -1711,9 +1735,6 @@ def maybe_make_parens_invisible_in_atom(
             not ink_comments.comment_contains_pragma(middle.prefix.strip(), mode)
         ):
             first.value = ""
-            if first.prefix.strip():
-                # Preserve comments before first paren
-                middle.prefix = first.prefix + middle.prefix
             last.value = ""
         maybe_make_parens_invisible_in_atom(
             middle,
@@ -1726,6 +1747,13 @@ def maybe_make_parens_invisible_in_atom(
             # Strip the invisible parens from `middle` by replacing
             # it with the child in-between the invisible parens
             middle.replace(middle.children[1])
+
+            if middle.children[0].prefix.strip():
+                # Preserve comments before first paren
+                middle.children[1].prefix = (
+                    middle.children[0].prefix + middle.children[1].prefix
+                )
+
             if middle.children[-1].prefix.strip():
                 # Preserve comments before last paren
                 last.prefix = middle.children[-1].prefix + last.prefix

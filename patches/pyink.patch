@@ -2,16 +2,16 @@
 # This file is provided so it's easier to see the actual differences between Black and Pyink.
 --- a/__init__.py
 +++ b/__init__.py
-@@ -24,6 +24,8 @@ from typing import (
-     Union,
- )
+@@ -22,6 +22,8 @@ from pathlib import Path
+ from re import Pattern
+ from typing import Any, Optional, Union
  
 +from blib2to3.pgen2 import token
 +from blib2to3.pytree import Leaf, Node
  import click
  from click.core import ParameterSource
  from mypy_extensions import mypyc_attr
-@@ -64,7 +66,13 @@ from pyink.linegen import LN, LineGenera
+@@ -62,7 +64,13 @@ from pyink.linegen import LN, LineGenera
  from pyink.lines import EmptyLineTracker, LinesBlock
  from pyink.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature
  from pyink.mode import Mode as Mode  # re-exported
@@ -26,7 +26,7 @@
  from pyink.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
  from pyink.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
  from pyink.parsing import (  # noqa F401
-@@ -80,9 +88,8 @@ from pyink.ranges import (
+@@ -78,9 +86,8 @@ from pyink.ranges import (
      parse_line_ranges,
      sanitized_lines,
  )
@@ -37,7 +37,7 @@
  
  COMPILED = Path(__file__).suffix in (".pyd", ".so")
  
-@@ -338,6 +345,61 @@ def validate_regex(
+@@ -336,6 +343,61 @@ def validate_regex(
      ),
  )
  @click.option(
@@ -99,7 +99,7 @@
      "--check",
      is_flag=True,
      help=(
-@@ -530,6 +592,12 @@ def main(  # noqa: C901
+@@ -528,6 +590,12 @@ def main(  # noqa: C901
      preview: bool,
      unstable: bool,
      enable_unstable_feature: list[Preview],
@@ -112,7 +112,7 @@
      quiet: bool,
      verbose: bool,
      required_version: Optional[str],
-@@ -636,7 +704,16 @@ def main(  # noqa: C901
+@@ -634,7 +702,16 @@ def main(  # noqa: C901
          preview=preview,
          unstable=unstable,
          python_cell_magics=set(python_cell_magics),
@@ -130,7 +130,7 @@
      )
  
      lines: list[tuple[int, int]] = []
-@@ -1132,6 +1209,17 @@ def validate_metadata(nb: MutableMapping
+@@ -1136,6 +1213,17 @@ def validate_metadata(nb: MutableMapping
      if language is not None and language != "python":
          raise NothingChanged from None
  
@@ -148,7 +148,7 @@
  
  def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileContent:
      """Format Jupyter notebook.
-@@ -1143,7 +1231,6 @@ def format_ipynb_string(src_contents: st
+@@ -1147,7 +1235,6 @@ def format_ipynb_string(src_contents: st
          raise NothingChanged
  
      trailing_newline = src_contents[-1] == "\n"
@@ -156,7 +156,7 @@
      nb = json.loads(src_contents)
      validate_metadata(nb)
      for cell in nb["cells"]:
-@@ -1155,14 +1242,17 @@ def format_ipynb_string(src_contents: st
+@@ -1159,14 +1246,17 @@ def format_ipynb_string(src_contents: st
                  pass
              else:
                  cell["source"] = dst.splitlines(keepends=True)
@@ -182,7 +182,7 @@
  
  
  def format_str(
-@@ -1223,6 +1313,8 @@ def _format_str_once(
+@@ -1227,6 +1317,8 @@ def _format_str_once(
          future_imports = get_future_imports(src_node)
          versions = detect_target_versions(src_node, future_imports=future_imports)
  
@@ -210,15 +210,15 @@
 +)
 --- a/comments.py
 +++ b/comments.py
-@@ -3,6 +3,7 @@ from dataclasses import dataclass
+@@ -4,6 +4,7 @@ from dataclasses import dataclass
  from functools import lru_cache
- from typing import Collection, Final, Iterator, Optional, Union
+ from typing import Final, Optional, Union
  
 +from pyink import ink_comments
- from pyink.mode import Mode, Preview
+ from pyink.mode import Mode
  from pyink.nodes import (
      CLOSING_BRACKETS,
-@@ -376,7 +377,7 @@ def children_contains_fmt_on(container:
+@@ -373,7 +374,7 @@ def children_contains_fmt_on(container:
      return False
  
  
@@ -227,7 +227,7 @@
      """
      Returns:
          True iff one of the comments in @comment_list is a pragma used by one
-@@ -384,7 +385,7 @@ def contains_pragma_comment(comment_list
+@@ -381,7 +382,7 @@ def contains_pragma_comment(comment_list
          pylint).
      """
      for comment in comment_list:
@@ -238,7 +238,7 @@
      return False
 --- a/files.py
 +++ b/files.py
-@@ -228,7 +228,7 @@ def strip_specifier_set(specifier_set: S
+@@ -221,7 +221,7 @@ def strip_specifier_set(specifier_set: S
  def find_user_pyproject_toml() -> Path:
      r"""Return the path to the top-level user configuration for pyink.
  
@@ -249,45 +249,20 @@
      May raise:
 --- a/handle_ipynb_magics.py
 +++ b/handle_ipynb_magics.py
-@@ -178,12 +178,14 @@ def mask_cell(src: str) -> tuple[str, li
-     from IPython.core.inputtransformer2 import TransformerManager
- 
-     transformer_manager = TransformerManager()
-+    # A side effect of the following transformation is that it also removes any
-+    # empty lines at the beginning of the cell.
-     transformed = transformer_manager.transform_cell(src)
-     transformed, cell_magic_replacements = replace_cell_magics(transformed)
-     replacements += cell_magic_replacements
-     transformed = transformer_manager.transform_cell(transformed)
-     transformed, magic_replacements = replace_magics(transformed)
--    if len(transformed.splitlines()) != len(src.splitlines()):
-+    if len(transformed.strip().splitlines()) != len(src.strip().splitlines()):
-         # Multi-line magic, not supported.
-         raise NothingChanged
-     replacements += magic_replacements
-@@ -269,7 +271,7 @@ def replace_magics(src: str) -> tuple[st
-     magic_finder = MagicFinder()
-     magic_finder.visit(ast.parse(src))
-     new_srcs = []
--    for i, line in enumerate(src.splitlines(), start=1):
-+    for i, line in enumerate(src.split("\n"), start=1):
-         if i in magic_finder.magics:
-             offsets_and_magics = magic_finder.magics[i]
-             if len(offsets_and_magics) != 1:  # pragma: nocover
-@@ -303,6 +305,8 @@ def unmask_cell(src: str, replacements:
+@@ -314,6 +314,8 @@ def unmask_cell(src: str, replacements:
      """
      for replacement in replacements:
          src = src.replace(replacement.mask, replacement.src)
 +        # Strings in src might have been reformatted with single quotes.
-+        src = src.replace(f"'{replacement.mask[1:-1]}'", replacement.src)
++        src = src.replace(f"b'{replacement.mask[2:-1]}'", replacement.src)
      return src
  
  
 --- a/linegen.py
 +++ b/linegen.py
-@@ -9,6 +9,12 @@ from enum import Enum, auto
+@@ -10,6 +10,12 @@ from enum import Enum, auto
  from functools import partial, wraps
- from typing import Collection, Iterator, Optional, Union, cast
+ from typing import Optional, Union, cast
  
 +if sys.version_info < (3, 8):
 +    from typing_extensions import Final, Literal
@@ -298,7 +273,7 @@
  from pyink.brackets import (
      COMMA_PRIORITY,
      DOT_PRIORITY,
-@@ -18,6 +24,7 @@ from pyink.brackets import (
+@@ -19,6 +25,7 @@ from pyink.brackets import (
  )
  from pyink.comments import FMT_OFF, generate_comments, list_comments
  from pyink.lines import (
@@ -306,15 +281,15 @@
      Line,
      RHSResult,
      append_leaves,
-@@ -55,7 +62,6 @@ from pyink.nodes import (
-     is_stub_body,
+@@ -58,7 +65,6 @@ from pyink.nodes import (
      is_stub_suite,
+     is_tuple_containing_star,
      is_tuple_containing_walrus,
 -    is_type_ignore_comment_string,
      is_vararg,
      is_walrus_assignment,
      is_yield,
-@@ -87,6 +93,15 @@ LeafID = int
+@@ -90,6 +96,15 @@ LeafID = int
  LN = Union[Leaf, Node]
  
  
@@ -330,7 +305,7 @@
  class CannotSplit(CannotTransform):
      """A readable split that fits the allotted line length is impossible."""
  
-@@ -106,7 +121,9 @@ class LineGenerator(Visitor[Line]):
+@@ -109,7 +124,9 @@ class LineGenerator(Visitor[Line]):
          self.current_line: Line
          self.__post_init__()
  
@@ -341,7 +316,7 @@
          """Generate a line.
  
          If the line is empty, only emit if it makes sense.
-@@ -115,7 +132,10 @@ class LineGenerator(Visitor[Line]):
+@@ -118,7 +135,10 @@ class LineGenerator(Visitor[Line]):
          If any lines were generated, set up a new current_line.
          """
          if not self.current_line:
@@ -353,7 +328,7 @@
              return  # Line is empty, don't emit. Creating a new one unnecessary.
  
          if len(self.current_line.leaves) == 1 and is_async_stmt_or_funcdef(
-@@ -128,7 +148,13 @@ class LineGenerator(Visitor[Line]):
+@@ -131,7 +151,13 @@ class LineGenerator(Visitor[Line]):
              return
  
          complete_line = self.current_line
@@ -368,7 +343,7 @@
          yield complete_line
  
      def visit_default(self, node: LN) -> Iterator[Line]:
-@@ -160,26 +186,27 @@ class LineGenerator(Visitor[Line]):
+@@ -163,26 +189,27 @@ class LineGenerator(Visitor[Line]):
      def visit_test(self, node: Node) -> Iterator[Line]:
          """Visit an `x if y else z` test"""
  
@@ -409,7 +384,7 @@
          yield from self.visit_default(node)
  
      def visit_DEDENT(self, node: Leaf) -> Iterator[Line]:
-@@ -194,7 +221,7 @@ class LineGenerator(Visitor[Line]):
+@@ -197,7 +224,7 @@ class LineGenerator(Visitor[Line]):
          yield from self.visit_default(node)
  
          # Finally, emit the dedent.
@@ -418,7 +393,7 @@
  
      def visit_stmt(
          self, node: Node, keywords: set[str], parens: set[str]
-@@ -245,6 +272,7 @@ class LineGenerator(Visitor[Line]):
+@@ -248,6 +275,7 @@ class LineGenerator(Visitor[Line]):
                          maybe_make_parens_invisible_in_atom(
                              child,
                              parent=node,
@@ -426,7 +401,7 @@
                              remove_brackets_around_comma=False,
                          )
                      else:
-@@ -265,6 +293,7 @@ class LineGenerator(Visitor[Line]):
+@@ -268,6 +296,7 @@ class LineGenerator(Visitor[Line]):
                      if maybe_make_parens_invisible_in_atom(
                          child,
                          parent=node,
@@ -434,7 +409,7 @@
                          remove_brackets_around_comma=False,
                      ):
                          wrap_in_parentheses(node, child, visible=False)
-@@ -287,7 +316,9 @@ class LineGenerator(Visitor[Line]):
+@@ -290,7 +319,9 @@ class LineGenerator(Visitor[Line]):
  
      def visit_suite(self, node: Node) -> Iterator[Line]:
          """Visit a suite."""
@@ -445,7 +420,7 @@
              yield from self.visit(node.children[2])
          else:
              yield from self.visit_default(node)
-@@ -301,15 +332,23 @@ class LineGenerator(Visitor[Line]):
+@@ -304,15 +335,23 @@ class LineGenerator(Visitor[Line]):
              prev_type = child.type
  
          if node.parent and node.parent.type in STATEMENT:
@@ -473,7 +448,7 @@
                  node.prefix = ""
                  yield from self.visit_default(node)
                  return
-@@ -358,7 +397,7 @@ class LineGenerator(Visitor[Line]):
+@@ -361,7 +400,7 @@ class LineGenerator(Visitor[Line]):
              ):
                  wrap_in_parentheses(node, leaf)
  
@@ -482,7 +457,7 @@
  
          yield from self.visit_default(node)
  
-@@ -405,13 +444,18 @@ class LineGenerator(Visitor[Line]):
+@@ -408,13 +447,16 @@ class LineGenerator(Visitor[Line]):
          def foo(a: (int), b: (float) = 7): ...
          """
          assert len(node.children) == 3
@@ -495,15 +470,13 @@
          yield from self.visit_default(node)
  
      def visit_STRING(self, leaf: Leaf) -> Iterator[Line]:
--        if Preview.hex_codes_in_unicode_sequences in self.mode:
-+        if (
-+            Preview.hex_codes_in_unicode_sequences in self.mode
-+            and not self.mode.is_pyink
-+        ):
-             normalize_unicode_escape_sequences(leaf)
+-        normalize_unicode_escape_sequences(leaf)
++        if not self.mode.is_pyink:
++            normalize_unicode_escape_sequences(leaf)
  
-         if is_docstring(leaf, self.mode) and not re.search(r"\\\s*\n", leaf.value):
-@@ -424,7 +468,9 @@ class LineGenerator(Visitor[Line]):
+         if is_docstring(leaf) and not re.search(r"\\\s*\n", leaf.value):
+             # We're ignoring docstrings with backslash newline escapes because changing
+@@ -426,7 +468,9 @@ class LineGenerator(Visitor[Line]):
                  # see padding logic below), there's a possibility for unstable
                  # formatting. To avoid a situation where this function formats a
                  # docstring differently on the second pass, normalize it early.
@@ -514,7 +487,7 @@
              else:
                  docstring = leaf.value
              prefix = get_string_prefix(docstring)
-@@ -438,7 +484,7 @@ class LineGenerator(Visitor[Line]):
+@@ -440,7 +484,7 @@ class LineGenerator(Visitor[Line]):
              quote_len = 1 if docstring[1] != quote_char else 3
              docstring = docstring[quote_len:-quote_len]
              docstring_started_empty = not docstring
@@ -522,8 +495,8 @@
 +            indent = " " * self.current_line.indentation_spaces()
  
              if is_multiline_string(leaf):
-                 docstring = fix_docstring(docstring, indent)
-@@ -473,7 +519,13 @@ class LineGenerator(Visitor[Line]):
+                 docstring = fix_multiline_docstring(docstring, indent)
+@@ -475,7 +519,13 @@ class LineGenerator(Visitor[Line]):
                  # If docstring is one line, we don't put the closing quotes on a
                  # separate line because it looks ugly (#3320).
                  lines = docstring.splitlines()
@@ -538,7 +511,7 @@
  
                  # If adding closing quotes would cause the last line to exceed
                  # the maximum line length, and the closing quote is not
-@@ -499,7 +551,9 @@ class LineGenerator(Visitor[Line]):
+@@ -498,7 +548,9 @@ class LineGenerator(Visitor[Line]):
  
          if self.mode.string_normalization and leaf.type == token.STRING:
              leaf.value = normalize_string_prefix(leaf.value)
@@ -549,7 +522,7 @@
          yield from self.visit_default(leaf)
  
      def visit_NUMBER(self, leaf: Leaf) -> Iterator[Line]:
-@@ -575,7 +629,8 @@ class LineGenerator(Visitor[Line]):
+@@ -587,7 +639,8 @@ class LineGenerator(Visitor[Line]):
  
          self.visit_expr_stmt = partial(v, keywords=Ø, parens=ASSIGNMENTS)
          self.visit_return_stmt = partial(v, keywords={"return"}, parens={"return"})
@@ -559,7 +532,7 @@
          self.visit_del_stmt = partial(v, keywords=Ø, parens={"del"})
          self.visit_async_funcdef = self.visit_async_stmt
          self.visit_decorated = self.visit_decorators
-@@ -621,14 +676,23 @@ def transform_line(
+@@ -632,14 +685,23 @@ def transform_line(
  
      ll = mode.line_length
      sn = mode.string_normalization
@@ -588,7 +561,7 @@
          and not line.should_split_rhs
          and not line.magic_trailing_comma
          and (
-@@ -831,7 +895,6 @@ def _first_right_hand_split(
+@@ -845,7 +907,6 @@ def _first_right_hand_split(
      omit: Collection[LeafID] = (),
  ) -> RHSResult:
      """Split the line into head, body, tail starting with the last bracket pair.
@@ -596,7 +569,7 @@
      Note: this function should not have side effects. It's relied upon by
      _maybe_split_omitting_optional_parens to get an opinion whether to prefer
      splitting on the right side of an assignment statement.
-@@ -1139,7 +1202,7 @@ def bracket_split_build_line(
+@@ -1167,7 +1228,7 @@ def bracket_split_build_line(
      result = Line(mode=original.mode, depth=original.depth)
      if component is _BracketSplitComponent.body:
          result.inside_brackets = True
@@ -605,7 +578,7 @@
          if _ensure_trailing_comma(leaves, original, opening_bracket):
              for i in range(len(leaves) - 1, -1, -1):
                  if leaves[i].type == STANDALONE_COMMENT:
-@@ -1408,15 +1471,17 @@ def normalize_invisible_parens(  # noqa:
+@@ -1432,15 +1493,17 @@ def normalize_invisible_parens(  # noqa:
                  if maybe_make_parens_invisible_in_atom(
                      child,
                      parent=node,
@@ -624,7 +597,7 @@
                  ):
                      wrap_in_parentheses(node, child, visible=False)
              elif is_one_tuple(child):
-@@ -1468,7 +1533,7 @@ def _normalize_import_from(parent: Node,
+@@ -1492,7 +1555,7 @@ def _normalize_import_from(parent: Node,
          parent.append_child(Leaf(token.RPAR, ""))
  
  
@@ -633,7 +606,7 @@
      if node.children[0].type == token.AWAIT and len(node.children) > 1:
          if (
              node.children[1].type == syms.atom
-@@ -1477,6 +1542,7 @@ def remove_await_parens(node: Node) -> N
+@@ -1501,6 +1564,7 @@ def remove_await_parens(node: Node) -> N
              if maybe_make_parens_invisible_in_atom(
                  node.children[1],
                  parent=node,
@@ -641,7 +614,7 @@
                  remove_brackets_around_comma=True,
              ):
                  wrap_in_parentheses(node, node.children[1], visible=False)
-@@ -1545,7 +1611,7 @@ def _maybe_wrap_cms_in_parens(
+@@ -1569,7 +1633,7 @@ def _maybe_wrap_cms_in_parens(
          node.insert_child(1, new_child)
  
  
@@ -650,7 +623,7 @@
      """Recursively hide optional parens in `with` statements."""
      # Removing all unnecessary parentheses in with statements in one pass is a tad
      # complex as different variations of bracketed statements result in pretty
-@@ -1567,21 +1633,23 @@ def remove_with_parens(node: Node, paren
+@@ -1591,21 +1655,23 @@ def remove_with_parens(node: Node, paren
          if maybe_make_parens_invisible_in_atom(
              node,
              parent=parent,
@@ -676,15 +649,15 @@
              remove_brackets_around_comma=True,
          ):
              wrap_in_parentheses(node, node.children[0], visible=False)
-@@ -1590,6 +1658,7 @@ def remove_with_parens(node: Node, paren
+@@ -1614,6 +1680,7 @@ def remove_with_parens(node: Node, paren
  def maybe_make_parens_invisible_in_atom(
      node: LN,
      parent: LN,
-+    mode: Mode,
++    mode: Optional[Mode] = None,
      remove_brackets_around_comma: bool = False,
  ) -> bool:
      """If it's safe, make the parens in the atom `node` invisible, recursively.
-@@ -1639,7 +1708,7 @@ def maybe_make_parens_invisible_in_atom(
+@@ -1665,13 +1732,14 @@ def maybe_make_parens_invisible_in_atom(
          if (
              # If the prefix of `middle` includes a type comment with
              # ignore annotation, then we do not remove the parentheses
@@ -692,8 +665,7 @@
 +            not ink_comments.comment_contains_pragma(middle.prefix.strip(), mode)
          ):
              first.value = ""
-             if first.prefix.strip():
-@@ -1649,6 +1718,7 @@ def maybe_make_parens_invisible_in_atom(
+             last.value = ""
          maybe_make_parens_invisible_in_atom(
              middle,
              parent=parent,
@@ -701,7 +673,7 @@
              remove_brackets_around_comma=remove_brackets_around_comma,
          )
  
-@@ -1707,7 +1777,7 @@ def generate_trailers_to_omit(line: Line
+@@ -1737,7 +1805,7 @@ def generate_trailers_to_omit(line: Line
      if not line.magic_trailing_comma:
          yield omit
  
@@ -710,7 +682,7 @@
      opening_bracket: Optional[Leaf] = None
      closing_bracket: Optional[Leaf] = None
      inner_brackets: set[LeafID] = set()
-@@ -1792,7 +1862,7 @@ def run_transformer(
+@@ -1822,7 +1890,7 @@ def run_transformer(
          or not line.bracket_tracker.invisible
          or any(bracket.value for bracket in line.bracket_tracker.invisible)
          or line.contains_multiline_strings()
@@ -725,8 +697,8 @@
 +from enum import Enum, auto
  import itertools
  import math
- from dataclasses import dataclass, field
-@@ -17,7 +18,7 @@ from pyink.nodes import (
+ from collections.abc import Callable, Iterator, Sequence
+@@ -18,7 +19,7 @@ from pyink.nodes import (
      is_multiline_string,
      is_one_sequence_between,
      is_type_comment,
@@ -735,7 +707,7 @@
      is_with_or_async_with_stmt,
      make_simple_prefix,
      replace_child,
-@@ -35,12 +36,24 @@ LeafID = int
+@@ -36,12 +37,24 @@ LeafID = int
  LN = Union[Leaf, Node]
  
  
@@ -761,7 +733,7 @@
      leaves: list[Leaf] = field(default_factory=list)
      # keys ordered like `leaves`
      comments: dict[LeafID, list[Leaf]] = field(default_factory=dict)
-@@ -49,6 +62,9 @@ class Line:
+@@ -50,6 +63,9 @@ class Line:
      should_split_rhs: bool = False
      magic_trailing_comma: Optional[Leaf] = None
  
@@ -771,7 +743,7 @@
      def append(
          self, leaf: Leaf, preformatted: bool = False, track_bracket: bool = False
      ) -> None:
-@@ -97,7 +113,7 @@ class Line:
+@@ -98,7 +114,7 @@ class Line:
          or when a standalone comment is not the first leaf on the line.
          """
          if (
@@ -780,7 +752,7 @@
              or self.bracket_tracker.any_open_for_or_lambda()
          ):
              if self.is_comment:
-@@ -262,7 +278,14 @@ class Line:
+@@ -261,7 +277,14 @@ class Line:
                      return True
          return False
  
@@ -796,7 +768,7 @@
          ignored_ids = set()
          try:
              last_leaf = self.leaves[-1]
-@@ -287,11 +310,9 @@ class Line:
+@@ -286,11 +309,9 @@ class Line:
          comment_seen = False
          for leaf_id, comments in self.comments.items():
              for comment in comments:
@@ -811,7 +783,7 @@
                          return True
  
                  comment_seen = True
-@@ -326,7 +347,7 @@ class Line:
+@@ -325,7 +346,7 @@ class Line:
              # line.
              for node in self.leaves[-2:]:
                  for comment in self.comments.get(id(node), []):
@@ -820,7 +792,7 @@
                          return True
  
          return False
-@@ -481,7 +502,7 @@ class Line:
+@@ -480,7 +501,7 @@ class Line:
          if not self:
              return "\n"
  
@@ -829,7 +801,7 @@
          leaves = iter(self.leaves)
          first = next(leaves)
          res = f"{first.prefix}{indent}{first.value}"
-@@ -553,7 +574,7 @@ class EmptyLineTracker:
+@@ -552,7 +573,7 @@ class EmptyLineTracker:
          lines (two on module-level).
          """
          form_feed = (
@@ -838,7 +810,7 @@
              and bool(current_line.leaves)
              and "\f\n" in current_line.leaves[0].prefix
          )
-@@ -598,7 +619,7 @@ class EmptyLineTracker:
+@@ -597,7 +618,7 @@ class EmptyLineTracker:
  
      def _maybe_empty_lines(self, current_line: Line) -> tuple[int, int]:  # noqa: C901
          max_allowed = 1
@@ -847,7 +819,7 @@
              max_allowed = 1 if self.mode.is_pyi else 2
  
          if current_line.leaves:
-@@ -615,7 +636,7 @@ class EmptyLineTracker:
+@@ -614,7 +635,7 @@ class EmptyLineTracker:
  
          # Mutate self.previous_defs, remainder of this function should be pure
          previous_def = None
@@ -856,8 +828,18 @@
              previous_def = self.previous_defs.pop()
          if current_line.is_def or current_line.is_class:
              self.previous_defs.append(current_line)
-@@ -671,10 +692,25 @@ class EmptyLineTracker:
-             )
+@@ -671,18 +692,33 @@ class EmptyLineTracker:
+ 
+         if (
+             self.previous_line.is_import
+-            and self.previous_line.depth == 0
+-            and current_line.depth == 0
++            and not self.previous_line.depth
++            and not current_line.depth
+             and not current_line.is_import
+             and Preview.always_one_newline_after_import in self.mode
+         ):
+             return 1, 0
  
          if (
 -            self.previous_line.is_import
@@ -884,7 +866,7 @@
          ):
              return (before or 1), 0
  
-@@ -691,8 +727,9 @@ class EmptyLineTracker:
+@@ -699,8 +735,9 @@ class EmptyLineTracker:
                  return 0, 1
              return 0, 0
  
@@ -896,7 +878,7 @@
          ):
              if self.mode.is_pyi:
                  return 0, 0
-@@ -701,7 +738,7 @@ class EmptyLineTracker:
+@@ -709,7 +746,7 @@ class EmptyLineTracker:
          comment_to_add_newlines: Optional[LinesBlock] = None
          if (
              self.previous_line.is_comment
@@ -905,7 +887,7 @@
              and before == 0
          ):
              slc = self.semantic_leading_comment
-@@ -718,9 +755,9 @@ class EmptyLineTracker:
+@@ -726,9 +763,9 @@ class EmptyLineTracker:
  
          if self.mode.is_pyi:
              if current_line.is_class or self.previous_line.is_class:
@@ -917,7 +899,7 @@
                      newlines = 1
                  elif current_line.is_stub_class and self.previous_line.is_stub_class:
                      # No blank line between classes with an empty body
-@@ -749,7 +786,11 @@ class EmptyLineTracker:
+@@ -757,7 +794,11 @@ class EmptyLineTracker:
              newlines = 1 if current_line.depth else 2
              # If a user has left no space after a dummy implementation, don't insert
              # new lines. This is useful for instance for @overload or Protocols.
@@ -930,7 +912,7 @@
                  newlines = 0
          if comment_to_add_newlines is not None:
              previous_block = comment_to_add_newlines.previous_block
-@@ -1020,7 +1061,7 @@ def can_omit_invisible_parens(
+@@ -1028,7 +1069,7 @@ def can_omit_invisible_parens(
  def _can_omit_opening_paren(line: Line, *, first: Leaf, line_length: int) -> bool:
      """See `can_omit_invisible_parens`."""
      remainder = False
@@ -939,7 +921,7 @@
      _index = -1
      for _index, leaf, leaf_length in line.enumerate_with_length():
          if leaf.type in CLOSING_BRACKETS and leaf.opening_bracket is first:
-@@ -1044,7 +1085,7 @@ def _can_omit_opening_paren(line: Line,
+@@ -1052,7 +1093,7 @@ def _can_omit_opening_paren(line: Line,
  
  def _can_omit_closing_paren(line: Line, *, last: Leaf, line_length: int) -> bool:
      """See `can_omit_invisible_parens`."""
@@ -959,7 +941,7 @@
  
  from pyink.const import DEFAULT_LINE_LENGTH
  
-@@ -229,7 +229,31 @@ class Deprecated(UserWarning):
+@@ -219,7 +219,31 @@ class Deprecated(UserWarning):
      """Visible deprecation warning."""
  
  
@@ -992,7 +974,7 @@
  
  
  @dataclass
-@@ -237,12 +261,21 @@ class Mode:
+@@ -227,12 +251,21 @@ class Mode:
      target_versions: set[TargetVersion] = field(default_factory=set)
      line_length: int = DEFAULT_LINE_LENGTH
      string_normalization: bool = True
@@ -1014,17 +996,19 @@
      unstable: bool = False
      enabled_features: set[Preview] = field(default_factory=set)
  
-@@ -254,6 +287,9 @@ class Mode:
+@@ -244,6 +277,11 @@ class Mode:
          except those in UNSTABLE_FEATURES are enabled. Any features in
          `self.enabled_features` are also enabled.
          """
-+        # no_normalize_fmt_skip_whitespace is temporarily disabled in Pyink.
-+        if feature is Preview.no_normalize_fmt_skip_whitespace and self.is_pyink:
++        # The following feature is temporarily disabled in Pyink because it is
++        # not compatible with range formatting. It's because format skipping in
++        # Black is broken.
++        if feature is Preview.always_one_newline_after_import and self.is_pyink:
 +            return False
          if self.unstable:
              return True
          if feature in self.enabled_features:
-@@ -285,12 +321,28 @@ class Mode:
+@@ -275,12 +313,28 @@ class Mode:
              version_str,
              str(self.line_length),
              str(int(self.string_normalization)),
@@ -1055,15 +1039,15 @@
 +            return Quote.DOUBLE
 --- a/nodes.py
 +++ b/nodes.py
-@@ -12,6 +12,7 @@ else:
+@@ -13,6 +13,7 @@ else:
  
  from mypy_extensions import mypyc_attr
  
 +from pyink import ink_comments
  from pyink.cache import CACHE_DIR
- from pyink.mode import Mode, Preview
+ from pyink.mode import Mode
  from pyink.strings import get_string_prefix, has_triple_quotes
-@@ -793,9 +794,13 @@ def is_function_or_class(node: Node) ->
+@@ -809,9 +810,13 @@ def is_function_or_class(node: Node) ->
      return node.type in {syms.funcdef, syms.classdef, syms.async_funcdef}
  
  
@@ -1079,7 +1063,7 @@
          return False
  
      # If there is a comment, we want to keep it.
-@@ -914,11 +919,13 @@ def is_type_comment(leaf: Leaf) -> bool:
+@@ -930,11 +935,13 @@ def is_type_comment(leaf: Leaf) -> bool:
      return t in {token.COMMENT, STANDALONE_COMMENT} and v.startswith("# type:")
  
  
@@ -1140,7 +1124,7 @@
 -description = "The uncompromising code formatter."
 +name = "pyink"
 +description = "Pyink is a python formatter, forked from Black with slightly different behavior."
- license = { text = "MIT" }
+ license = "MIT"
  requires-python = ">=3.9"
 -authors = [
 -  { name = "Łukasz Langa", email = "lukasz@langa.pl" },
@@ -1163,7 +1147,7 @@
    "platformdirs>=2",
    "tomli>=1.1.0; python_version < '3.11'",
    "typing_extensions>=4.0.1; python_version < '3.11'",
-+  "black==24.10.0",
++  "black==25.1.0",
  ]
 -dynamic = ["readme", "version"]
 +dynamic = ["version"]
@@ -1286,8 +1270,8 @@
        "type": "array",
 --- a/strings.py
 +++ b/strings.py
-@@ -8,6 +8,7 @@ from functools import lru_cache
- from typing import Final, Match, Pattern
+@@ -9,6 +9,7 @@ from re import Match, Pattern
+ from typing import Final
  
  from pyink._width_table import WIDTH_TABLE
 +from pyink.mode import Quote
@@ -1307,7 +1291,7 @@
  
      Adds or removes backslashes as appropriate.
      """
-@@ -234,8 +237,8 @@ def normalize_string_quotes(s: str) -> s
+@@ -233,8 +236,8 @@ def normalize_string_quotes(s: str) -> s
      if new_escape_count > orig_escape_count:
          return s  # Do not introduce more escaping
  
@@ -1338,7 +1322,7 @@
 +pyink = false
 --- a/tests/test_black.py
 +++ b/tests/test_black.py
-@@ -44,7 +44,7 @@ from pyink import Feature, TargetVersion
+@@ -33,7 +33,7 @@ from pyink import Feature, TargetVersion
  from pyink import re_compile_maybe_verbose as compile_pattern
  from pyink.cache import FileData, get_cache_dir, get_cache_file
  from pyink.debug import DebugVisitor
@@ -1347,9 +1331,9 @@
  from pyink.output import color_diff, diff
  from pyink.parsing import ASTSafetyError
  from pyink.report import Report
-@@ -2365,6 +2365,19 @@ class TestCaching:
-                     {Preview.docstring_check_for_newline},
-                     {Preview.hex_codes_in_unicode_sequences},
+@@ -2356,6 +2356,19 @@ class TestCaching:
+                     {Preview.multiline_string_handling},
+                     {Preview.string_processing},
                  ]
 +            elif field.type is Quote:
 +                values = list(Quote)
@@ -1367,7 +1351,7 @@
              elif field.type is bool:
                  values = [True, False]
              elif field.type is int:
-@@ -2845,6 +2858,82 @@ class TestFileCollection:
+@@ -2836,6 +2849,82 @@ class TestFileCollection:
              stdin_filename=stdin_filename,
          )
  
@@ -1476,30 +1460,7 @@
  
  runner = CliRunner()
  
-@@ -174,6 +182,22 @@ def test_cell_magic_with_magic() -> None
- 
- 
- @pytest.mark.parametrize(
-+    "src, expected",
-+    (
-+        ("\n\n\n%time \n\n", "%time"),
-+        ("  \n\t\n%%timeit -n4 \t \nx=2  \n\r\n", "%%timeit -n4\nx = 2"),
-+        (
-+            "  \t\n\n%%capture \nx=2 \n%config \n\n%env\n\t  \n \n\n",
-+            "%%capture\nx = 2\n%config\n\n%env",
-+        ),
-+    ),
-+)
-+def test_cell_magic_with_empty_lines(src: str, expected: str) -> None:
-+    result = format_cell(src, fast=True, mode=JUPYTER_MODE)
-+    assert result == expected
-+
-+
-+@pytest.mark.parametrize(
-     "mode, expected_output, expectation",
-     [
-         pytest.param(
-@@ -224,6 +248,13 @@ def test_cell_magic_with_custom_python_m
+@@ -240,6 +248,13 @@ def test_cell_magic_with_custom_python_m
          format_cell(src, fast=True, mode=JUPYTER_MODE)
  
  
@@ -1513,7 +1474,7 @@
  def test_cell_magic_nested() -> None:
      src = "%%time\n%%time\n2+2"
      result = format_cell(src, fast=True, mode=JUPYTER_MODE)
-@@ -397,6 +428,45 @@ def test_entire_notebook_no_trailing_new
+@@ -413,6 +428,45 @@ def test_entire_notebook_no_trailing_new
      assert result == expected
  
  
@@ -1559,7 +1520,7 @@
  def test_entire_notebook_without_changes() -> None:
      content = read_jupyter_notebook("jupyter", "notebook_without_changes")
      with pytest.raises(NothingChanged):
-@@ -448,6 +518,30 @@ def test_ipynb_diff_with_no_change() ->
+@@ -464,6 +518,30 @@ def test_ipynb_diff_with_no_change() ->
      assert expected in result.output
  
  
@@ -1592,7 +1553,7 @@
  ) -> None:
 --- a/tests/util.py
 +++ b/tests/util.py
-@@ -264,6 +264,11 @@ def get_flags_parser() -> argparse.Argum
+@@ -265,6 +265,11 @@ def get_flags_parser() -> argparse.Argum
          ),
      )
      parser.add_argument("--line-ranges", action="append")
@@ -1604,7 +1565,7 @@
      parser.add_argument(
          "--no-preview-line-length-1",
          default=False,
-@@ -287,6 +292,9 @@ def parse_mode(flags_line: str) -> TestC
+@@ -288,6 +293,9 @@ def parse_mode(flags_line: str) -> TestC
          is_ipynb=args.ipynb,
          magic_trailing_comma=not args.skip_magic_trailing_comma,
          preview=args.preview,
@@ -1614,7 +1575,7 @@
          unstable=args.unstable,
      )
      if args.line_ranges:
-@@ -340,7 +348,8 @@ def read_jupyter_notebook(subdir_name: s
+@@ -341,7 +349,8 @@ def read_jupyter_notebook(subdir_name: s
  def read_jupyter_notebook_from_file(file_name: Path) -> str:
      with open(file_name, mode="rb") as fd:
          content_bytes = fd.read()
@@ -1642,18 +1603,18 @@
 +    pyink --check {toxinidir}/src {toxinidir}/tests {toxinidir}/docs {toxinidir}/scripts
 --- a/trans.py
 +++ b/trans.py
-@@ -24,8 +24,8 @@ from typing import (
+@@ -12,8 +12,8 @@ from typing import Any, ClassVar, Final,
  from mypy_extensions import trait
  
  from pyink.comments import contains_pragma_comment
 -from pyink.lines import Line, append_leaves
--from pyink.mode import Feature, Mode, Preview
+-from pyink.mode import Feature, Mode
 +from pyink.lines import Indentation, Line, append_leaves
-+from pyink.mode import Feature, Mode, Preview, Quote
++from pyink.mode import Feature, Mode, Quote
  from pyink.nodes import (
      CLOSING_BRACKETS,
      OPENING_BRACKETS,
-@@ -275,9 +275,18 @@ class StringTransformer(ABC):
+@@ -233,9 +233,18 @@ class StringTransformer(ABC):
  
      # Ideally this would be a dataclass, but unfortunately mypyc breaks when used with
      # `abc.ABC`.
@@ -1673,7 +1634,7 @@
  
      @abstractmethod
      def do_match(self, line: Line) -> TMatchResult:
-@@ -755,7 +764,9 @@ class StringMerger(StringTransformer, Cu
+@@ -713,7 +722,9 @@ class StringMerger(StringTransformer, Cu
  
          S_leaf = Leaf(token.STRING, S)
          if self.normalize_strings:
@@ -1684,7 +1645,7 @@
  
          # Fill the 'custom_splits' list with the appropriate CustomSplit objects.
          temp_string = S_leaf.value[len(prefix) + 1 : -1]
-@@ -856,7 +867,7 @@ class StringMerger(StringTransformer, Cu
+@@ -831,7 +842,7 @@ class StringMerger(StringTransformer, Cu
  
              if id(leaf) in line.comments:
                  num_of_inline_string_comments += 1
@@ -1693,7 +1654,7 @@
                      return TErr("Cannot merge strings which have pragma comments.")
  
          if num_of_strings < 2:
-@@ -996,7 +1007,13 @@ class StringParenStripper(StringTransfor
+@@ -975,7 +986,13 @@ class StringParenStripper(StringTransfor
                      idx += 1
  
          if string_indices:
@@ -1708,7 +1669,7 @@
          return TErr("This line has no strings wrapped in parens.")
  
      def do_transform(
-@@ -1158,7 +1175,7 @@ class BaseStringSplitter(StringTransform
+@@ -1137,7 +1154,7 @@ class BaseStringSplitter(StringTransform
              )
  
          if id(line.leaves[string_idx]) in line.comments and contains_pragma_comment(
@@ -1717,7 +1678,7 @@
          ):
              return TErr(
                  "Line appears to end with an inline pragma comment. Splitting the line"
-@@ -1200,7 +1217,7 @@ class BaseStringSplitter(StringTransform
+@@ -1179,7 +1196,7 @@ class BaseStringSplitter(StringTransform
          #   NN: The leaf that is after N.
  
          # WMA4 the whitespace at the beginning of the line.
@@ -1726,7 +1687,7 @@
  
          if is_valid_index(string_idx - 1):
              p_idx = string_idx - 1
-@@ -1554,7 +1571,7 @@ class StringSplitter(BaseStringSplitter,
+@@ -1533,7 +1550,7 @@ class StringSplitter(BaseStringSplitter,
                  characters expand to two columns).
              """
              result = self.line_length
@@ -1735,7 +1696,7 @@
              result -= 1 if ends_with_comma else 0
              result -= string_op_leaves_length
              return result
-@@ -1565,11 +1582,11 @@ class StringSplitter(BaseStringSplitter,
+@@ -1544,11 +1561,11 @@ class StringSplitter(BaseStringSplitter,
          # The last index of a string of length N is N-1.
          max_break_width -= 1
          # Leading whitespace is not present in the string value (e.g. Leaf.value).
@@ -1749,7 +1710,7 @@
              )
              return
  
-@@ -1866,7 +1883,9 @@ class StringSplitter(BaseStringSplitter,
+@@ -1845,7 +1862,9 @@ class StringSplitter(BaseStringSplitter,
  
      def _maybe_normalize_string_quotes(self, leaf: Leaf) -> None:
          if self.normalize_strings:
@@ -1760,7 +1721,7 @@
  
      def _normalize_f_string(self, string: str, prefix: str) -> str:
          """
-@@ -1989,7 +2008,8 @@ class StringParenWrapper(BaseStringSplit
+@@ -1968,7 +1987,8 @@ class StringParenWrapper(BaseStringSplit
                  char == " " or char in SPLIT_SAFE_CHARS for char in string_value
              ):
                  # And will still violate the line length limit when split...
@@ -1770,7 +1731,7 @@
                  if str_width(string_value) > max_string_width:
                      # And has no associated custom splits...
                      if not self.has_custom_splits(string_value):
-@@ -2235,7 +2255,7 @@ class StringParenWrapper(BaseStringSplit
+@@ -2214,7 +2234,7 @@ class StringParenWrapper(BaseStringSplit
          string_value = LL[string_idx].value
          string_line = Line(
              mode=line.mode,

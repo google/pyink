@@ -14,7 +14,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pyink"
 description = "Pyink is a python formatter, forked from Black with slightly different behavior."
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.9"
 readme = "README.md"
 authors = [{name = "The Pyink Maintainers", email = "pyink-maintainers@google.com"}]
@@ -42,7 +42,7 @@ dependencies = [
   "platformdirs>=2",
   "tomli>=1.1.0; python_version < '3.11'",
   "typing_extensions>=4.0.1; python_version < '3.11'",
-  "black==24.10.0",
+  "black==25.1.0",
 ]
 dynamic = ["version"]
 

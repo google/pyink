@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Iterator, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 from pyink.nodes import Visitor
 from pyink.output import out
