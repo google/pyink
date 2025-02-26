@@ -260,20 +260,18 @@
  
 --- a/linegen.py
 +++ b/linegen.py
-@@ -10,6 +10,12 @@ from enum import Enum, auto
+@@ -8,8 +8,9 @@ from collections.abc import Collection,
+ from dataclasses import replace
+ from enum import Enum, auto
  from functools import partial, wraps
- from typing import Optional, Union, cast
+-from typing import Optional, Union, cast
++from typing import Literal, Optional, Union, cast
  
-+if sys.version_info < (3, 8):
-+    from typing_extensions import Final, Literal
-+else:
-+    from typing import Final, Literal
-+
 +from pyink import ink_comments
  from pyink.brackets import (
      COMMA_PRIORITY,
      DOT_PRIORITY,
-@@ -19,6 +25,7 @@ from pyink.brackets import (
+@@ -19,6 +20,7 @@ from pyink.brackets import (
  )
  from pyink.comments import FMT_OFF, generate_comments, list_comments
  from pyink.lines import (
@@ -281,7 +279,7 @@
      Line,
      RHSResult,
      append_leaves,
-@@ -58,7 +65,6 @@ from pyink.nodes import (
+@@ -58,7 +60,6 @@ from pyink.nodes import (
      is_stub_suite,
      is_tuple_containing_star,
      is_tuple_containing_walrus,
@@ -289,7 +287,7 @@
      is_vararg,
      is_walrus_assignment,
      is_yield,
-@@ -90,6 +96,15 @@ LeafID = int
+@@ -90,6 +91,15 @@ LeafID = int
  LN = Union[Leaf, Node]
  
  
@@ -305,7 +303,7 @@
  class CannotSplit(CannotTransform):
      """A readable split that fits the allotted line length is impossible."""
  
-@@ -109,7 +124,9 @@ class LineGenerator(Visitor[Line]):
+@@ -109,7 +119,9 @@ class LineGenerator(Visitor[Line]):
          self.current_line: Line
          self.__post_init__()
  
@@ -316,7 +314,7 @@
          """Generate a line.
  
          If the line is empty, only emit if it makes sense.
-@@ -118,7 +135,10 @@ class LineGenerator(Visitor[Line]):
+@@ -118,7 +130,10 @@ class LineGenerator(Visitor[Line]):
          If any lines were generated, set up a new current_line.
          """
          if not self.current_line:
@@ -328,7 +326,7 @@
              return  # Line is empty, don't emit. Creating a new one unnecessary.
  
          if len(self.current_line.leaves) == 1 and is_async_stmt_or_funcdef(
-@@ -131,7 +151,13 @@ class LineGenerator(Visitor[Line]):
+@@ -131,7 +146,13 @@ class LineGenerator(Visitor[Line]):
              return
  
          complete_line = self.current_line
@@ -343,7 +341,7 @@
          yield complete_line
  
      def visit_default(self, node: LN) -> Iterator[Line]:
-@@ -163,26 +189,27 @@ class LineGenerator(Visitor[Line]):
+@@ -163,26 +184,27 @@ class LineGenerator(Visitor[Line]):
      def visit_test(self, node: Node) -> Iterator[Line]:
          """Visit an `x if y else z` test"""
  
@@ -384,7 +382,7 @@
          yield from self.visit_default(node)
  
      def visit_DEDENT(self, node: Leaf) -> Iterator[Line]:
-@@ -197,7 +224,7 @@ class LineGenerator(Visitor[Line]):
+@@ -197,7 +219,7 @@ class LineGenerator(Visitor[Line]):
          yield from self.visit_default(node)
  
          # Finally, emit the dedent.
@@ -393,7 +391,7 @@
  
      def visit_stmt(
          self, node: Node, keywords: set[str], parens: set[str]
-@@ -248,6 +275,7 @@ class LineGenerator(Visitor[Line]):
+@@ -248,6 +270,7 @@ class LineGenerator(Visitor[Line]):
                          maybe_make_parens_invisible_in_atom(
                              child,
                              parent=node,
@@ -401,7 +399,7 @@
                              remove_brackets_around_comma=False,
                          )
                      else:
-@@ -268,6 +296,7 @@ class LineGenerator(Visitor[Line]):
+@@ -268,6 +291,7 @@ class LineGenerator(Visitor[Line]):
                      if maybe_make_parens_invisible_in_atom(
                          child,
                          parent=node,
@@ -409,7 +407,7 @@
                          remove_brackets_around_comma=False,
                      ):
                          wrap_in_parentheses(node, child, visible=False)
-@@ -290,7 +319,9 @@ class LineGenerator(Visitor[Line]):
+@@ -290,7 +314,9 @@ class LineGenerator(Visitor[Line]):
  
      def visit_suite(self, node: Node) -> Iterator[Line]:
          """Visit a suite."""
@@ -420,7 +418,7 @@
              yield from self.visit(node.children[2])
          else:
              yield from self.visit_default(node)
-@@ -304,15 +335,23 @@ class LineGenerator(Visitor[Line]):
+@@ -304,15 +330,23 @@ class LineGenerator(Visitor[Line]):
              prev_type = child.type
  
          if node.parent and node.parent.type in STATEMENT:
@@ -448,7 +446,7 @@
                  node.prefix = ""
                  yield from self.visit_default(node)
                  return
-@@ -361,7 +400,7 @@ class LineGenerator(Visitor[Line]):
+@@ -361,7 +395,7 @@ class LineGenerator(Visitor[Line]):
              ):
                  wrap_in_parentheses(node, leaf)
  
@@ -457,7 +455,7 @@
  
          yield from self.visit_default(node)
  
-@@ -408,13 +447,16 @@ class LineGenerator(Visitor[Line]):
+@@ -408,13 +442,16 @@ class LineGenerator(Visitor[Line]):
          def foo(a: (int), b: (float) = 7): ...
          """
          assert len(node.children) == 3
@@ -476,7 +474,7 @@
  
          if is_docstring(leaf) and not re.search(r"\\\s*\n", leaf.value):
              # We're ignoring docstrings with backslash newline escapes because changing
-@@ -426,7 +468,9 @@ class LineGenerator(Visitor[Line]):
+@@ -426,7 +463,9 @@ class LineGenerator(Visitor[Line]):
                  # see padding logic below), there's a possibility for unstable
                  # formatting. To avoid a situation where this function formats a
                  # docstring differently on the second pass, normalize it early.
@@ -487,7 +485,7 @@
              else:
                  docstring = leaf.value
              prefix = get_string_prefix(docstring)
-@@ -440,7 +484,7 @@ class LineGenerator(Visitor[Line]):
+@@ -440,7 +479,7 @@ class LineGenerator(Visitor[Line]):
              quote_len = 1 if docstring[1] != quote_char else 3
              docstring = docstring[quote_len:-quote_len]
              docstring_started_empty = not docstring
@@ -496,7 +494,7 @@
  
              if is_multiline_string(leaf):
                  docstring = fix_multiline_docstring(docstring, indent)
-@@ -475,7 +519,13 @@ class LineGenerator(Visitor[Line]):
+@@ -475,7 +514,13 @@ class LineGenerator(Visitor[Line]):
                  # If docstring is one line, we don't put the closing quotes on a
                  # separate line because it looks ugly (#3320).
                  lines = docstring.splitlines()
@@ -511,7 +509,7 @@
  
                  # If adding closing quotes would cause the last line to exceed
                  # the maximum line length, and the closing quote is not
-@@ -498,7 +548,9 @@ class LineGenerator(Visitor[Line]):
+@@ -498,7 +543,9 @@ class LineGenerator(Visitor[Line]):
  
          if self.mode.string_normalization and leaf.type == token.STRING:
              leaf.value = normalize_string_prefix(leaf.value)
@@ -522,7 +520,7 @@
          yield from self.visit_default(leaf)
  
      def visit_NUMBER(self, leaf: Leaf) -> Iterator[Line]:
-@@ -587,7 +639,8 @@ class LineGenerator(Visitor[Line]):
+@@ -587,7 +634,8 @@ class LineGenerator(Visitor[Line]):
  
          self.visit_expr_stmt = partial(v, keywords=Ø, parens=ASSIGNMENTS)
          self.visit_return_stmt = partial(v, keywords={"return"}, parens={"return"})
@@ -532,7 +530,7 @@
          self.visit_del_stmt = partial(v, keywords=Ø, parens={"del"})
          self.visit_async_funcdef = self.visit_async_stmt
          self.visit_decorated = self.visit_decorators
-@@ -632,14 +685,23 @@ def transform_line(
+@@ -632,14 +680,23 @@ def transform_line(
  
      ll = mode.line_length
      sn = mode.string_normalization
@@ -561,7 +559,7 @@
          and not line.should_split_rhs
          and not line.magic_trailing_comma
          and (
-@@ -845,7 +907,6 @@ def _first_right_hand_split(
+@@ -845,7 +902,6 @@ def _first_right_hand_split(
      omit: Collection[LeafID] = (),
  ) -> RHSResult:
      """Split the line into head, body, tail starting with the last bracket pair.
@@ -569,7 +567,7 @@
      Note: this function should not have side effects. It's relied upon by
      _maybe_split_omitting_optional_parens to get an opinion whether to prefer
      splitting on the right side of an assignment statement.
-@@ -1167,7 +1228,7 @@ def bracket_split_build_line(
+@@ -1167,7 +1223,7 @@ def bracket_split_build_line(
      result = Line(mode=original.mode, depth=original.depth)
      if component is _BracketSplitComponent.body:
          result.inside_brackets = True
@@ -578,7 +576,7 @@
          if _ensure_trailing_comma(leaves, original, opening_bracket):
              for i in range(len(leaves) - 1, -1, -1):
                  if leaves[i].type == STANDALONE_COMMENT:
-@@ -1432,15 +1493,17 @@ def normalize_invisible_parens(  # noqa:
+@@ -1432,15 +1488,17 @@ def normalize_invisible_parens(  # noqa:
                  if maybe_make_parens_invisible_in_atom(
                      child,
                      parent=node,
@@ -597,7 +595,7 @@
                  ):
                      wrap_in_parentheses(node, child, visible=False)
              elif is_one_tuple(child):
-@@ -1492,7 +1555,7 @@ def _normalize_import_from(parent: Node,
+@@ -1492,7 +1550,7 @@ def _normalize_import_from(parent: Node,
          parent.append_child(Leaf(token.RPAR, ""))
  
  
@@ -606,7 +604,7 @@
      if node.children[0].type == token.AWAIT and len(node.children) > 1:
          if (
              node.children[1].type == syms.atom
-@@ -1501,6 +1564,7 @@ def remove_await_parens(node: Node) -> N
+@@ -1501,6 +1559,7 @@ def remove_await_parens(node: Node) -> N
              if maybe_make_parens_invisible_in_atom(
                  node.children[1],
                  parent=node,
@@ -614,7 +612,7 @@
                  remove_brackets_around_comma=True,
              ):
                  wrap_in_parentheses(node, node.children[1], visible=False)
-@@ -1569,7 +1633,7 @@ def _maybe_wrap_cms_in_parens(
+@@ -1569,7 +1628,7 @@ def _maybe_wrap_cms_in_parens(
          node.insert_child(1, new_child)
  
  
@@ -623,7 +621,7 @@
      """Recursively hide optional parens in `with` statements."""
      # Removing all unnecessary parentheses in with statements in one pass is a tad
      # complex as different variations of bracketed statements result in pretty
-@@ -1591,21 +1655,23 @@ def remove_with_parens(node: Node, paren
+@@ -1591,21 +1650,23 @@ def remove_with_parens(node: Node, paren
          if maybe_make_parens_invisible_in_atom(
              node,
              parent=parent,
@@ -649,7 +647,7 @@
              remove_brackets_around_comma=True,
          ):
              wrap_in_parentheses(node, node.children[0], visible=False)
-@@ -1614,6 +1680,7 @@ def remove_with_parens(node: Node, paren
+@@ -1614,6 +1675,7 @@ def remove_with_parens(node: Node, paren
  def maybe_make_parens_invisible_in_atom(
      node: LN,
      parent: LN,
@@ -657,7 +655,7 @@
      remove_brackets_around_comma: bool = False,
  ) -> bool:
      """If it's safe, make the parens in the atom `node` invisible, recursively.
-@@ -1665,13 +1732,14 @@ def maybe_make_parens_invisible_in_atom(
+@@ -1665,13 +1727,14 @@ def maybe_make_parens_invisible_in_atom(
          if (
              # If the prefix of `middle` includes a type comment with
              # ignore annotation, then we do not remove the parentheses
@@ -673,7 +671,7 @@
              remove_brackets_around_comma=remove_brackets_around_comma,
          )
  
-@@ -1737,7 +1805,7 @@ def generate_trailers_to_omit(line: Line
+@@ -1737,7 +1800,7 @@ def generate_trailers_to_omit(line: Line
      if not line.magic_trailing_comma:
          yield omit
  
@@ -682,7 +680,7 @@
      opening_bracket: Optional[Leaf] = None
      closing_bracket: Optional[Leaf] = None
      inner_brackets: set[LeafID] = set()
-@@ -1822,7 +1890,7 @@ def run_transformer(
+@@ -1822,7 +1885,7 @@ def run_transformer(
          or not line.bracket_tracker.invisible
          or any(bracket.value for bracket in line.bracket_tracker.invisible)
          or line.contains_multiline_strings()

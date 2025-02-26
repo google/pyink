@@ -8,12 +8,7 @@ from collections.abc import Collection, Iterator
 from dataclasses import replace
 from enum import Enum, auto
 from functools import partial, wraps
-from typing import Optional, Union, cast
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Final, Literal
-else:
-    from typing import Final, Literal
+from typing import Literal, Optional, Union, cast
 
 from pyink import ink_comments
 from pyink.brackets import (
