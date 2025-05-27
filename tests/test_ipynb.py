@@ -529,8 +529,7 @@ def test_ipynb_diff_with_pyink_overrides() -> None:
     )
     expected = """cell_1
 @@ -1,6 +1,5 @@
-- %%time
-+%%time
+ %%time
  
 -a=1
 -if a  <1 or a>1:
