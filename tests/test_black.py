@@ -114,7 +114,12 @@ class BlackRunner(CliRunner):
     """Make sure STDOUT and STDERR are kept separate when testing Black via its CLI."""
 
     def __init__(self) -> None:
-        super().__init__(mix_stderr=False)
+        # Click 8.2.0 removed mix_stderr=False and also deprecated accessing
+        # __version__ directly. Hence, we use try-except.
+        try:
+            super().__init__(mix_stderr=False)
+        except TypeError:
+            super().__init__()
 
 
 def invokeBlack(

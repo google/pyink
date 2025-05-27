@@ -1329,7 +1329,21 @@
  from pyink.output import color_diff, diff
  from pyink.parsing import ASTSafetyError
  from pyink.report import Report
-@@ -2356,6 +2356,19 @@ class TestCaching:
+@@ -114,7 +114,12 @@ class BlackRunner(CliRunner):
+     """Make sure STDOUT and STDERR are kept separate when testing Black via its CLI."""
+ 
+     def __init__(self) -> None:
+-        super().__init__(mix_stderr=False)
++        # Click 8.2.0 removed mix_stderr=False and also deprecated accessing
++        # __version__ directly. Hence, we use try-except.
++        try:
++            super().__init__(mix_stderr=False)
++        except TypeError:
++            super().__init__()
+ 
+ 
+ def invokeBlack(
+@@ -2356,6 +2361,19 @@ class TestCaching:
                      {Preview.multiline_string_handling},
                      {Preview.string_processing},
                  ]
@@ -1349,7 +1363,7 @@
              elif field.type is bool:
                  values = [True, False]
              elif field.type is int:
-@@ -2836,6 +2849,82 @@ class TestFileCollection:
+@@ -2836,6 +2854,82 @@ class TestFileCollection:
              stdin_filename=stdin_filename,
          )
  
