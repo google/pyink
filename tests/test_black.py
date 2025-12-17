@@ -3,6 +3,7 @@
 import asyncio
 import inspect
 import io
+import itertools
 import logging
 import multiprocessing
 import os
@@ -14,17 +15,19 @@ from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, redirect_stderr
 from dataclasses import fields, replace
+from importlib.metadata import version as imp_version
 from io import BytesIO
 from pathlib import Path, WindowsPath
 from platform import system
 from tempfile import TemporaryDirectory
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 from unittest.mock import MagicMock, patch
 
 import click
 import pytest
 from click import unstyle
 from click.testing import CliRunner
+from packaging.version import Version
 from pathspec import PathSpec
 
 import pyink
@@ -82,8 +85,7 @@ def cache_dir(exists: bool = True) -> Iterator[Path]:
 
 @contextmanager
 def event_loop() -> Iterator[None]:
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
+    loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         yield
@@ -114,7 +116,10 @@ class BlackRunner(CliRunner):
     """Make sure STDOUT and STDERR are kept separate when testing Black via its CLI."""
 
     def __init__(self) -> None:
-        super().__init__(mix_stderr=False)
+        if Version(imp_version("click")) >= Version("8.2.0"):
+            super().__init__()
+        else:
+            super().__init__(mix_stderr=False)  # type: ignore
 
 
 def invokeBlack(
@@ -187,10 +192,10 @@ class BlackTestCase(BlackBaseTestCase):
             input=BytesIO(source.encode("utf-8")),
         )
         self.assertEqual(result.exit_code, 0)
-        self.assertFormatEqual(expected, result.output)
-        if source != result.output:
-            pyink.assert_equivalent(source, result.output)
-            pyink.assert_stable(source, result.output, DEFAULT_MODE)
+        self.assertFormatEqual(expected, result.stdout)
+        if source != result.stdout:
+            pyink.assert_equivalent(source, result.stdout)
+            pyink.assert_stable(source, result.stdout, DEFAULT_MODE)
 
     def test_piping_diff(self) -> None:
         diff_header = re.compile(
@@ -210,7 +215,7 @@ class BlackTestCase(BlackBaseTestCase):
             pyink.main, args, input=BytesIO(source.encode("utf-8"))
         )
         self.assertEqual(result.exit_code, 0)
-        actual = diff_header.sub(DETERMINISTIC_HEADER, result.output)
+        actual = diff_header.sub(DETERMINISTIC_HEADER, result.stdout)
         actual = actual.rstrip() + "\n"  # the diff output has a trailing space
         self.assertEqual(expected, actual)
 
@@ -295,7 +300,7 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(result.exit_code, 0)
         finally:
             os.unlink(tmp_file)
-        actual = result.output
+        actual = result.stdout
         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
         if expected != actual:
             dump = pyink.dump_to_file(actual)
@@ -404,7 +409,7 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(result.exit_code, 0)
         finally:
             os.unlink(tmp_file)
-        actual = result.output
+        actual = result.stdout
         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
         actual = actual.rstrip() + "\n"  # the diff output has a trailing space
         if expected != actual:
@@ -418,34 +423,15 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(expected, actual, msg)
 
     @patch("pyink.dump_to_file", dump_to_stderr)
-    def test_async_as_identifier(self) -> None:
-        source_path = get_case_path("miscellaneous", "async_as_identifier")
-        _, source, expected = read_data_from_file(source_path)
-        actual = fs(source)
-        self.assertFormatEqual(expected, actual)
-        major, minor = sys.version_info[:2]
-        if major < 3 or (major <= 3 and minor < 7):
-            pyink.assert_equivalent(source, actual)
-        pyink.assert_stable(source, actual, DEFAULT_MODE)
-        # ensure black can parse this when the target is 3.6
-        self.invokeBlack([str(source_path), "--target-version", "py36"])
-        # but not on 3.7, because async/await is no longer an identifier
-        self.invokeBlack([str(source_path), "--target-version", "py37"], exit_code=123)
-
-    @patch("pyink.dump_to_file", dump_to_stderr)
     def test_python37(self) -> None:
         source_path = get_case_path("cases", "python37")
         _, source, expected = read_data_from_file(source_path)
         actual = fs(source)
         self.assertFormatEqual(expected, actual)
-        major, minor = sys.version_info[:2]
-        if major > 3 or (major == 3 and minor >= 7):
-            pyink.assert_equivalent(source, actual)
+        pyink.assert_equivalent(source, actual)
         pyink.assert_stable(source, actual, DEFAULT_MODE)
         # ensure black can parse this when the target is 3.7
         self.invokeBlack([str(source_path), "--target-version", "py37"])
-        # but not on 3.6, because we use async as a reserved keyword
-        self.invokeBlack([str(source_path), "--target-version", "py36"], exit_code=123)
 
     def test_tab_comment_indentation(self) -> None:
         contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t# comment\n\tpass\n"
@@ -454,17 +440,6 @@ class BlackTestCase(BlackBaseTestCase):
         self.assertFormatEqual(contents_spc, fs(contents_tab))
 
         contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t\t# comment\n\tpass\n"
-        contents_spc = "if 1:\n    if 2:\n        pass\n        # comment\n    pass\n"
-        self.assertFormatEqual(contents_spc, fs(contents_spc))
-        self.assertFormatEqual(contents_spc, fs(contents_tab))
-
-        # mixed tabs and spaces (valid Python 2 code)
-        contents_tab = "if 1:\n        if 2:\n\t\tpass\n\t# comment\n        pass\n"
-        contents_spc = "if 1:\n    if 2:\n        pass\n    # comment\n    pass\n"
-        self.assertFormatEqual(contents_spc, fs(contents_spc))
-        self.assertFormatEqual(contents_spc, fs(contents_tab))
-
-        contents_tab = "if 1:\n        if 2:\n\t\tpass\n\t\t# comment\n        pass\n"
         contents_spc = "if 1:\n    if 2:\n        pass\n        # comment\n    pass\n"
         self.assertFormatEqual(contents_spc, fs(contents_spc))
         self.assertFormatEqual(contents_spc, fs(contents_tab))
@@ -921,6 +896,9 @@ class BlackTestCase(BlackBaseTestCase):
         self.check_features_used(
             "with ((a, ((b as c)))): pass", {Feature.PARENTHESIZED_CONTEXT_MANAGERS}
         )
+        self.check_features_used(
+            "x = t'foo {f'bar'}'", {Feature.T_STRINGS, Feature.F_STRINGS}
+        )
 
     def check_features_used(self, source: str, expected: set[Feature]) -> None:
         node = pyink.lib2to3_parse(source)
@@ -942,7 +920,7 @@ class BlackTestCase(BlackBaseTestCase):
             ("a = 1 + 2\nfrom something import annotations", set()),
             ("from __future__ import x, y", set()),
         ]:
-            with self.subTest(src=src, features=features):
+            with self.subTest(src=src, features=sorted(f.value for f in features)):
                 node = pyink.lib2to3_parse(src)
                 future_imports = pyink.get_future_imports(node)
                 self.assertEqual(
@@ -1355,10 +1333,8 @@ class BlackTestCase(BlackBaseTestCase):
 
         def _new_wrapper(
             output: io.StringIO, io_TextIOWrapper: type[io.TextIOWrapper]
-        ) -> Callable[[Any, Any], Union[io.StringIO, io.TextIOWrapper]]:
-            def get_output(
-                *args: Any, **kwargs: Any
-            ) -> Union[io.StringIO, io.TextIOWrapper]:
+        ) -> Callable[[Any, Any], io.StringIO | io.TextIOWrapper]:
+            def get_output(*args: Any, **kwargs: Any) -> io.StringIO | io.TextIOWrapper:
                 if args == (sys.stdout.buffer,):
                     # It's `format_stdin_to_stdout()` calling `io.TextIOWrapper()`,
                     # return our mock object.
@@ -1547,6 +1523,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             (
@@ -1556,6 +1533,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             ("<3.6", [TargetVersion.PY33, TargetVersion.PY34, TargetVersion.PY35]),
@@ -1567,6 +1545,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             (
@@ -1577,6 +1556,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             (
@@ -1591,6 +1571,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             (
@@ -1607,6 +1588,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY311,
                     TargetVersion.PY312,
                     TargetVersion.PY313,
+                    TargetVersion.PY314,
                 ],
             ),
             ("==3.8.*", [TargetVersion.PY38]),
@@ -1774,16 +1756,13 @@ class BlackTestCase(BlackBaseTestCase):
         if system() == "Windows":
             return
 
-        # https://bugs.python.org/issue33660
-        # Can be removed when we drop support for Python 3.8.5
         root = Path("/")
-        with change_directory(root):
-            path = Path("workspace") / "project"
-            report = pyink.Report(verbose=True)
-            resolves_outside = pyink.resolves_outside_root_or_cannot_stat(
-                path, root, report
-            )
-            self.assertIs(resolves_outside, False)
+        path = Path("workspace") / "project"
+        report = pyink.Report(verbose=True)
+        resolves_outside = pyink.resolves_outside_root_or_cannot_stat(
+            path, root, report
+        )
+        self.assertIs(resolves_outside, False)
 
     def test_normalize_path_ignore_windows_junctions_outside_of_root(self) -> None:
         if system() != "Windows":
@@ -1826,7 +1805,7 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(result.exit_code, 0)
         finally:
             os.unlink(tmp_file)
-        actual = result.output
+        actual = result.stdout
         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
         self.assertEqual(actual, expected)
 
@@ -1836,7 +1815,7 @@ class BlackTestCase(BlackBaseTestCase):
     ) -> None:
         """Helper method to test the value and exit code of a click Result."""
         assert (
-            result.output == expected_value
+            result.stdout == expected_value
         ), "The output did not match the expected value."
         assert result.exit_code == expected_exit_code, "The exit code is incorrect."
 
@@ -1913,7 +1892,8 @@ class BlackTestCase(BlackBaseTestCase):
             args = ["--safe", "--code", code]
             result = CliRunner().invoke(pyink.main, args)
 
-            self.compare_results(result, error_msg, 123)
+            assert error_msg == result.output
+            assert result.exit_code == 123
 
     def test_code_option_fast(self) -> None:
         """Test that the code option ignores errors when the sanity checks fail."""
@@ -1975,7 +1955,7 @@ class BlackTestCase(BlackBaseTestCase):
         with pytest.raises(pyink.parsing.InvalidInput) as exc_info:
             pyink.lib2to3_parse("print(", {})
 
-        exc_info.match("Cannot parse: 2:0: EOF in multi-line statement")
+        exc_info.match("Cannot parse: 1:6: Unexpected EOF in multi-line statement")
 
     def test_line_ranges_with_code_option(self) -> None:
         code = textwrap.dedent("""\
@@ -2069,6 +2049,42 @@ class BlackTestCase(BlackBaseTestCase):
         assert lines_with_leading_tabs_expanded("\tx") == [f"{tab}x"]
         assert lines_with_leading_tabs_expanded("\t\tx") == [f"{tab}{tab}x"]
         assert lines_with_leading_tabs_expanded("\tx\n  y") == [f"{tab}x", "  y"]
+
+    def test_carriage_return_edge_cases(self) -> None:
+        # These tests are here instead of in the normal cases because
+        # of git's newline normalization and because it's hard to
+        # get `\r` vs `\r\n` vs `\n` to display properly
+        assert (
+            pyink.format_str(
+                "try:\\\r# type: ignore\n pass\nfinally:\n pass\n",
+                mode=pyink.FileMode(),
+            )
+            == "try:  # type: ignore\n    pass\nfinally:\n    pass\n"
+        )
+        assert pyink.format_str("{\r}", mode=pyink.FileMode()) == "{}\n"
+        assert pyink.format_str("pass #\r#\n", mode=pyink.FileMode()) == "pass  #\n#\n"
+
+        assert pyink.format_str("x=\\\r\n1", mode=pyink.FileMode()) == "x = 1\n"
+        assert pyink.format_str("x=\\\n1", mode=pyink.FileMode()) == "x = 1\n"
+        assert pyink.format_str("x=\\\r1", mode=pyink.FileMode()) == "x = 1\n"
+        assert (
+            pyink.format_str("class A\\\r\n:...", mode=pyink.FileMode())
+            == "class A: ...\n"
+        )
+        assert (
+            pyink.format_str("class A\\\n:...", mode=pyink.FileMode())
+            == "class A: ...\n"
+        )
+        assert (
+            pyink.format_str("class A\\\r:...", mode=pyink.FileMode())
+            == "class A: ...\n"
+        )
+
+    def test_preview_newline_type_detection(self) -> None:
+        mode = Mode(enabled_features={Preview.normalize_cr_newlines})
+        newline_types = ["A\n", "A\r\n", "A\r"]
+        for test_case in itertools.permutations(newline_types):
+            assert pyink.format_str("".join(test_case), mode=mode) == test_case[0] * 3
 
 
 class TestCaching:
@@ -2212,6 +2228,53 @@ class TestCaching:
             assert not result.exit_code
             cache_file = get_cache_file(mode)
             assert not cache_file.exists()
+
+    def test_no_cache_flag_prevents_writes(self) -> None:
+        """--no-cache should neither read nor write the cache"""
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            cache = pyink.Cache.read(mode)
+            # Pre-populate cache so the file is considered cached
+            cache.write([src])
+            with (
+                patch.object(pyink.Cache, "read") as read_cache,
+                patch.object(pyink.Cache, "write") as write_cache,
+            ):
+                # Pass --no-cache; it should neither read nor write
+                invokeBlack([str(src), "--no-cache"])
+                read_cache.assert_not_called()
+                write_cache.assert_not_called()
+
+    def test_no_cache_with_multiple_files(self) -> None:
+        """Formatting multiple files with --no-cache should not read or write cache
+        and should format files normally."""
+        mode = DEFAULT_MODE
+        with (cache_dir() as workspace,):
+            one = (workspace / "one.py").resolve()
+            one.write_text("print('hello')", encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('hello')", encoding="utf-8")
+
+            # Pre-populate cache for `one` so it would normally be skipped
+            cache = pyink.Cache.read(mode)
+            cache.write([one])
+
+            with (
+                patch.object(pyink.Cache, "read") as read_cache,
+                patch.object(pyink.Cache, "write") as write_cache,
+            ):
+                # Run Black over the directory with --no-cache
+                invokeBlack([str(workspace), "--no-cache"])
+
+                # Cache should not be consulted or updated
+                read_cache.assert_not_called()
+                write_cache.assert_not_called()
+
+            # Both files should have been formatted (double quotes + newline)
+            assert one.read_text(encoding="utf-8") == 'print("hello")\n'
+            assert two.read_text(encoding="utf-8") == 'print("hello")\n'
 
     def test_read_cache_no_cachefile(self) -> None:
         mode = DEFAULT_MODE
@@ -2383,15 +2446,15 @@ class TestCaching:
 
 
 def assert_collected_sources(
-    src: Sequence[Union[str, Path]],
-    expected: Sequence[Union[str, Path]],
+    src: Sequence[str | Path],
+    expected: Sequence[str | Path],
     *,
-    root: Optional[Path] = None,
-    exclude: Optional[str] = None,
-    include: Optional[str] = None,
-    extend_exclude: Optional[str] = None,
-    force_exclude: Optional[str] = None,
-    stdin_filename: Optional[str] = None,
+    root: Path | None = None,
+    exclude: str | None = None,
+    include: str | None = None,
+    extend_exclude: str | None = None,
+    force_exclude: str | None = None,
+    stdin_filename: str | None = None,
 ) -> None:
     gs_src = tuple(str(Path(s)) for s in src)
     gs_expected = [Path(s) for s in expected]

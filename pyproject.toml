@@ -2,35 +2,35 @@
 # Yes, we use the _Black_ style to format _Pyink_ code.
 pyink = false
 line-length = 88
-target-version = ['py39']
+target-version = ['py310']
 include = '\.pyi?$'
 extend-exclude = 'tests/data'
 unstable = true
 
 [build-system]
-requires = ["hatchling>=1.20.0", "hatch-vcs"]
+requires = ["hatchling>=1.27.0", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "pyink"
 description = "Pyink is a python formatter, forked from Black with slightly different behavior."
 license = "MIT"
-requires-python = ">=3.9"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
 readme = "README.md"
 authors = [{name = "The Pyink Maintainers", email = "pyink-maintainers@google.com"}]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Software Development :: Quality Assurance",
 ]
@@ -40,9 +40,10 @@ dependencies = [
   "packaging>=22.0",
   "pathspec>=0.9.0",
   "platformdirs>=2",
+  "pytokens>=0.3.0",
   "tomli>=1.1.0; python_version < '3.11'",
   "typing_extensions>=4.0.1; python_version < '3.11'",
-  "black==25.1.0",
+  "black==25.12.0",
 ]
 dynamic = ["version"]
 
