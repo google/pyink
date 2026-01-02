@@ -6,6 +6,17 @@ All notable changes to Pyink are recorded here.
 
 * Nothing notable unreleased.
 
+## 25.12.0
+
+This release is based on _Black_ v25.12.0.
+
+## 24.10.1
+
+This release is based on _Black_ v24.10.0.
+
+* Add CLI option `--pyink-ipynb-unicode-escape` for unicode escaping characters in serialized .ipynb files.
+* Fix a dependency to the wrong Black version in pyproject.toml.
+
 ## 24.10.0
 
 This release is based on _Black_ v24.10.0.
