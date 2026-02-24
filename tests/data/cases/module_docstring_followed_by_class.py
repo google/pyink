@@ -1,10 +1,6 @@
-"""Two blank lines between module docstring and a class."""
 class MyClass:
-    pass
-
-# output
-"""Two blank lines between module docstring and a class."""
+  """Two blank lines between module docstring andfgdfjjjffg"""
 
 
-class MyClass:
-    pass
+class MyClass2:
+  """pass"""

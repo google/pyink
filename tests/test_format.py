@@ -83,11 +83,76 @@ def test_empty() -> None:
 
 
 def test_patma_invalid() -> None:
-    source, expected = read_data("miscellaneous", "pattern_matching_invalid")
-    mode = pyink.Mode(target_versions={pyink.TargetVersion.PY310})
-    with pytest.raises(pyink.parsing.InvalidInput) as exc_info:
-        assert_format(source, expected, mode, minimum_version=(3, 10))
+  source, expected = read_data("miscellaneous", "pattern_matching_invalid")
+  mode = pyink.Mode(target_versions={pyink.TargetVersion.PY310})
+  with pytest.raises(pyink.parsing.InvalidInput) as exc_info:
+    assert_format(source, expected, mode, minimum_version=(3, 10))
 
-    exc_info.match(
-        "Cannot parse for target version Python 3.10: 10:11:     case a := b:"
+  exc_info.match(
+      "Cannot parse for target version Python 3.10: 10:11:     case a := b:"
+  )
+
+
+def test_range_formatting_preserves_newlines() -> None:
+  # Source: Class docstring followed by another class (2 empty lines)
+  # The docstring is unformatted (long line) to trigger change
+  source = (
+      'class A:\n    """Updates the Candidate\'s Phased Release to the desired'
+      " state. Args: rapid_candidate_id: The Rapid Candidate"
+      ' ID."""\n\n\n\nclass'
+      " PhasedReleaseClientFactory(metaclass=abc.ABCMeta):\n    pass\n"
+  )
+
+  # Expected: Formatted docstring + 3 empty lines
+  expected = (
+      "class A:\n"
+      '    """Updates the Candidate\'s Phased Release to the desired state.\n'
+      "\n"
+      "    Args:\n"
+      "      rapid_candidate_id: The Rapid Candidate ID.\n"
+      '    """\n'
+      "\n"
+      "\n"
+      "\n"
+      "class PhasedReleaseClientFactory(metaclass=abc.ABCMeta):\n"
+      "    pass\n"
+  )
+
+  # Range covering the unformatted docstring (line 2)
+  lines = [(2, 2)]
+
+  # assert_format(source, expected, lines=lines)
+
+  # Debugging: Monkeypatch EmptyLineTracker._maybe_empty_lines
+  from pyink.lines import EmptyLineTracker, Line
+
+  original_maybe_empty_lines = EmptyLineTracker._maybe_empty_lines
+
+  def debug_maybe_empty_lines(self, current_line: Line) -> tuple[int, int]:
+    before, after = original_maybe_empty_lines(self, current_line)
+    print(f"DEBUG: Line: {str(current_line).strip()!r}")
+    print(
+        "DEBUG:   Type:"
+        f" {current_line.leaves[0].type if current_line.leaves else 'None'}"
     )
+    print(f"DEBUG:   Is Comment: {current_line.is_comment}")
+    print(f"DEBUG:   Is Class: {current_line.is_class}")
+    print(f"DEBUG:   Depth: {current_line.depth}")
+    print(
+        "DEBUG:   Prefix:"
+        f" {current_line.leaves[0].prefix if current_line.leaves else 'None'!r}"
+    )
+    print(
+        "DEBUG:   Prefix newlines:"
+        f" {current_line.leaves[0].prefix.count('\\n') if current_line.leaves else 0}"
+    )
+    print(f"DEBUG:   Calculated before: {before}, after: {after}")
+    return before, after
+
+  with patch.object(
+      EmptyLineTracker,
+      "_maybe_empty_lines",
+      side_effect=debug_maybe_empty_lines,
+      autospec=True,
+  ):
+    assert_format(source, "EXPECT_FAILURE", lines=lines)
