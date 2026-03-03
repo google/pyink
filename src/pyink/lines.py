@@ -632,6 +632,8 @@ class EmptyLineTracker:
             or current_line.is_def
         ):
             return False
+        if previous_block.original_line.depth:
+            return False
         while previous_block := previous_block.previous_block:
             if not previous_block.original_line.is_comment:
                 return False

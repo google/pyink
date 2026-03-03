@@ -688,7 +688,16 @@
              and bool(current_line.leaves)
              and "\f\n" in current_line.leaves[0].prefix
          )
-@@ -618,7 +639,7 @@ class EmptyLineTracker:
+@@ -611,6 +632,8 @@ class EmptyLineTracker:
+             or current_line.is_def
+         ):
+             return False
++        if previous_block.original_line.depth:
++            return False
+         while previous_block := previous_block.previous_block:
+             if not previous_block.original_line.is_comment:
+                 return False
+@@ -618,7 +641,7 @@ class EmptyLineTracker:
  
      def _maybe_empty_lines(self, current_line: Line) -> tuple[int, int]:
          max_allowed = 1
@@ -697,7 +706,7 @@
              max_allowed = 1 if self.mode.is_pyi else 2
  
          if current_line.leaves:
-@@ -635,7 +656,7 @@ class EmptyLineTracker:
+@@ -635,7 +658,7 @@ class EmptyLineTracker:
  
          # Mutate self.previous_defs, remainder of this function should be pure
          previous_def = None
@@ -706,7 +715,7 @@
              previous_def = self.previous_defs.pop()
          if current_line.is_def or current_line.is_class:
              self.previous_defs.append(current_line)
-@@ -692,8 +713,8 @@ class EmptyLineTracker:
+@@ -692,8 +715,8 @@ class EmptyLineTracker:
  
          if (
              self.previous_line.is_import
@@ -717,7 +726,7 @@
              and not current_line.is_import
              and not current_line.is_fmt_pass_converted(first_leaf_matches=is_import)
              and Preview.always_one_newline_after_import in self.mode
-@@ -701,10 +722,25 @@ class EmptyLineTracker:
+@@ -701,10 +724,25 @@ class EmptyLineTracker:
              return 1, 0
  
          if (
@@ -745,7 +754,7 @@
          ):
              return (before or 1), 0
  
-@@ -721,8 +757,9 @@ class EmptyLineTracker:
+@@ -721,8 +759,9 @@ class EmptyLineTracker:
                  return 0, 1
              return 0, 0
  
@@ -757,7 +766,7 @@
          ):
              if self.mode.is_pyi:
                  return 0, 0
-@@ -731,7 +768,7 @@ class EmptyLineTracker:
+@@ -731,7 +770,7 @@ class EmptyLineTracker:
          comment_to_add_newlines: LinesBlock | None = None
          if (
              self.previous_line.is_comment
@@ -766,7 +775,7 @@
              and before == 0
          ):
              slc = self.semantic_leading_comment
-@@ -748,9 +785,9 @@ class EmptyLineTracker:
+@@ -748,9 +787,9 @@ class EmptyLineTracker:
  
          if self.mode.is_pyi:
              if current_line.is_class or self.previous_line.is_class:
@@ -778,7 +787,7 @@
                      newlines = 1
                  elif current_line.is_stub_class and self.previous_line.is_stub_class:
                      # No blank line between classes with an empty body
-@@ -779,7 +816,11 @@ class EmptyLineTracker:
+@@ -779,7 +818,11 @@ class EmptyLineTracker:
              newlines = 1 if current_line.depth else 2
              # If a user has left no space after a dummy implementation, don't insert
              # new lines. This is useful for instance for @overload or Protocols.
@@ -791,7 +800,7 @@
                  newlines = 0
          if comment_to_add_newlines is not None:
              previous_block = comment_to_add_newlines.previous_block
-@@ -1054,7 +1095,7 @@ def can_omit_invisible_parens(
+@@ -1054,7 +1097,7 @@ def can_omit_invisible_parens(
  def _can_omit_opening_paren(line: Line, *, first: Leaf, line_length: int) -> bool:
      """See `can_omit_invisible_parens`."""
      remainder = False
@@ -800,7 +809,7 @@
      _index = -1
      for _index, leaf, leaf_length in line.enumerate_with_length():
          if leaf.type in CLOSING_BRACKETS and leaf.opening_bracket is first:
-@@ -1078,7 +1119,7 @@ def _can_omit_opening_paren(line: Line,
+@@ -1078,7 +1121,7 @@ def _can_omit_opening_paren(line: Line,
  
  def _can_omit_closing_paren(line: Line, *, last: Leaf, line_length: int) -> bool:
      """See `can_omit_invisible_parens`."""
