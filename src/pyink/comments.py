@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Final, Union
 
-from pyink import ink_comments
-from pyink.mode import Mode, Preview
+from pyink.mode import Mode
 from pyink.nodes import (
     CLOSING_BRACKETS,
     STANDALONE_COMMENT,
@@ -20,6 +19,8 @@ from pyink.nodes import (
 )
 from blib2to3.pgen2 import token
 from blib2to3.pytree import Leaf, Node
+
+from pyink import ink_comments
 
 # types
 LN = Union[Leaf, Node]
@@ -177,8 +178,7 @@ def make_comment(content: str, mode: Mode) -> str:
     ):
         content = " " + content[1:]  # Replace NBSP by a simple space
     if (
-        Preview.standardize_type_comments in mode
-        and content
+        content
         and "\N{NO-BREAK SPACE}" not in content
         and is_type_comment_string("#" + content, mode=mode)
     ):
@@ -645,22 +645,11 @@ def _generate_ignored_nodes_from_fmt_skip(
     if not comments or comment.value != comments[0].value:
         return
 
-    if Preview.fix_fmt_skip_in_one_liners in mode and not prev_sibling and parent:
+    if not prev_sibling and parent:
         prev_sibling = parent.prev_sibling
 
     if prev_sibling is not None:
         leaf.prefix = leaf.prefix[comment.consumed :]
-
-        if Preview.fix_fmt_skip_in_one_liners not in mode:
-            siblings = [prev_sibling]
-            while (
-                "\n" not in prev_sibling.prefix
-                and prev_sibling.prev_sibling is not None
-            ):
-                prev_sibling = prev_sibling.prev_sibling
-                siblings.insert(0, prev_sibling)
-            yield from siblings
-            return
 
         # Generates the nodes to be ignored by `fmt: skip`.
 
@@ -740,7 +729,7 @@ def _generate_ignored_nodes_from_fmt_skip(
                 current_node = current_node.parent
 
         # Special handling for compound statements with semicolon-separated bodies
-        if Preview.fix_fmt_skip_in_one_liners in mode and isinstance(parent, Node):
+        if isinstance(parent, Node):
             body_node = _find_compound_statement_context(parent)
             if body_node is not None:
                 header_nodes = _get_compound_statement_header(body_node, parent)

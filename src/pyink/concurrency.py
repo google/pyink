@@ -27,18 +27,24 @@ from pyink.output import err
 from pyink.report import Changed, Report
 
 
-def maybe_install_uvloop() -> None:
-    """If our environment has uvloop installed we use it.
+def maybe_use_uvloop() -> asyncio.AbstractEventLoop:
+    """If our environment has uvloop or winloop installed we use it otherwise
+    a normal asyncio eventloop is called as fallback.
 
     This is called only from command-line entry points to avoid
     interfering with the parent process if Black is used as a library.
     """
     try:
-        import uvloop
+        if sys.platform != "win32":
+            import uvloop
 
-        uvloop.install()
+            return uvloop.new_event_loop()
+        else:
+            import winloop
+
+            return winloop.new_event_loop()
     except ImportError:
-        pass
+        return asyncio.new_event_loop()
 
 
 def cancel(tasks: Iterable[asyncio.Future[Any]]) -> None:
@@ -81,7 +87,6 @@ def reformat_many(
     no_cache: bool = False,
 ) -> None:
     """Reformat multiple files using a ProcessPoolExecutor."""
-    maybe_install_uvloop()
 
     if workers is None:
         workers = int(os.environ.get("PYINK_NUM_WORKERS", 0))
@@ -89,6 +94,12 @@ def reformat_many(
     if sys.platform == "win32":
         # Work around https://bugs.python.org/issue26903
         workers = min(workers, 60)
+    if getattr(sys, "frozen", False):
+        # In frozen builds (e.g. PyInstaller), avoid spawning worker processes (i.e.
+        # avoid using ProcessPoolExecutor) to prevent shutdown errors when workers
+        # try to import modules after cleanup begins.
+        # See https://github.com/psf/black/issues/4823
+        workers = 1
 
     executor: Executor | None = None
     if workers > 1:
@@ -104,7 +115,7 @@ def reformat_many(
     if executor is None:
         executor = ThreadPoolExecutor(max_workers=1)
 
-    loop = asyncio.new_event_loop()
+    loop = maybe_use_uvloop()
     asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(
@@ -159,46 +170,52 @@ async def schedule_formatting(
     cancelled = []
     sources_to_cache = []
     lock = None
+    manager = None
     if write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
         # For diff output, we need locks to ensure we don't interleave output
         # from different processes.
         manager = Manager()
         lock = manager.Lock()
-    tasks = {
-        asyncio.ensure_future(
-            loop.run_in_executor(
-                executor, format_file_in_place, src, fast, mode, write_back, lock
-            )
-        ): src
-        for src in sorted(sources)
-    }
-    pending = tasks.keys()
+
     try:
-        loop.add_signal_handler(signal.SIGINT, cancel, pending)
-        loop.add_signal_handler(signal.SIGTERM, cancel, pending)
-    except NotImplementedError:
-        # There are no good alternatives for these on Windows.
-        pass
-    while pending:
-        done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            src = tasks.pop(task)
-            if task.cancelled():
-                cancelled.append(task)
-            elif exc := task.exception():
-                if report.verbose:
-                    traceback.print_exception(type(exc), exc, exc.__traceback__)
-                report.failed(src, str(exc))
-            else:
-                changed = Changed.YES if task.result() else Changed.NO
-                # If the file was written back or was successfully checked as
-                # well-formatted, store this information in the cache.
-                if write_back is WriteBack.YES or (
-                    write_back is WriteBack.CHECK and changed is Changed.NO
-                ):
-                    sources_to_cache.append(src)
-                report.done(src, changed)
-    if cancelled:
-        await asyncio.gather(*cancelled, return_exceptions=True)
-    if sources_to_cache and not no_cache and cache is not None:
-        cache.write(sources_to_cache)
+        tasks = {
+            asyncio.ensure_future(
+                loop.run_in_executor(
+                    executor, format_file_in_place, src, fast, mode, write_back, lock
+                )
+            ): src
+            for src in sorted(sources)
+        }
+        pending = tasks.keys()
+        try:
+            loop.add_signal_handler(signal.SIGINT, cancel, pending)
+            loop.add_signal_handler(signal.SIGTERM, cancel, pending)
+        except NotImplementedError:
+            # There are no good alternatives for these on Windows.
+            pass
+        while pending:
+            done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                src = tasks.pop(task)
+                if task.cancelled():
+                    cancelled.append(task)
+                elif exc := task.exception():
+                    if report.verbose:
+                        traceback.print_exception(type(exc), exc, exc.__traceback__)
+                    report.failed(src, str(exc))
+                else:
+                    changed = Changed.YES if task.result() else Changed.NO
+                    # If the file was written back or was successfully checked as
+                    # well-formatted, store this information in the cache.
+                    if write_back is WriteBack.YES or (
+                        write_back is WriteBack.CHECK and changed is Changed.NO
+                    ):
+                        sources_to_cache.append(src)
+                    report.done(src, changed)
+        if cancelled:
+            await asyncio.gather(*cancelled, return_exceptions=True)
+        if sources_to_cache and not no_cache and cache is not None:
+            cache.write(sources_to_cache)
+    finally:
+        if manager is not None:
+            manager.shutdown()

@@ -25,8 +25,8 @@ from blib2to3.pytree import Leaf, Node
 import click
 from click.core import ParameterSource
 from mypy_extensions import mypyc_attr
-from pathspec import PathSpec
-from pathspec.patterns.gitwildmatch import GitWildMatchPatternError
+from pathspec import GitIgnoreSpec
+from pathspec.patterns.gitignore import GitIgnorePatternError
 
 from _pyink_version import version as __version__
 from pyink.cache import Cache
@@ -207,6 +207,27 @@ def target_version_option_callback(
     when it was a lambda, causing mypyc trouble.
     """
     return [TargetVersion[val.upper()] for val in v]
+
+
+def _target_versions_exceed_runtime(
+    target_versions: set[TargetVersion],
+) -> bool:
+    if not target_versions:
+        return False
+    max_target_minor = max(tv.value for tv in target_versions)
+    return max_target_minor > sys.version_info[1]
+
+
+def _version_mismatch_message(target_versions: set[TargetVersion]) -> str:
+    max_target = max(target_versions, key=lambda tv: tv.value)
+    runtime = f"{sys.version_info[0]}.{sys.version_info[1]}"
+    return (
+        f"Python {runtime} cannot parse code formatted for"
+        f" {max_target.pretty()}. To fix this: run Black with"
+        f" {max_target.pretty()}, set --target-version to"
+        f" py3{sys.version_info[1]}, or use --fast to skip the safety"
+        " check."
+    )
 
 
 def enable_unstable_feature_callback(
@@ -719,6 +740,14 @@ def main(
         ),
     )
 
+    if not fast and _target_versions_exceed_runtime(versions):
+        err(
+            f"Warning: {_version_mismatch_message(versions)} Black's safety"
+            " check verifies equivalence by parsing the AST, which fails"
+            " when the running Python is older than the target version.",
+            fg="yellow",
+        )
+
     lines: list[tuple[int, int]] = []
     if line_ranges:
         if ipynb:
@@ -762,7 +791,7 @@ def main(
                 report=report,
                 stdin_filename=stdin_filename,
             )
-        except GitWildMatchPatternError:
+        except GitIgnorePatternError:
             ctx.exit(1)
 
         if not sources:
@@ -826,7 +855,7 @@ def get_sources(
     assert root.is_absolute(), f"INTERNAL ERROR: `root` must be absolute but is {root}"
     using_default_exclude = exclude is None
     exclude = re_compile_maybe_verbose(DEFAULT_EXCLUDES) if exclude is None else exclude
-    gitignore: dict[Path, PathSpec] | None = None
+    gitignore: dict[Path, GitIgnoreSpec] | None = None
     root_gitignore = get_gitignore(root)
 
     for s in src:
@@ -1087,10 +1116,8 @@ def format_stdin_to_stdout(
 
     if content is None:
         src, encoding, newline = decode_bytes(sys.stdin.buffer.read(), mode)
-    elif Preview.normalize_cr_newlines in mode:
-        src, encoding, newline = content, "utf-8", "\n"
     else:
-        src, encoding, newline = content, "utf-8", ""
+        src, encoding, newline = content, "utf-8", "\n"
 
     dst = src
     try:
@@ -1106,12 +1133,8 @@ def format_stdin_to_stdout(
         )
         if write_back == WriteBack.YES:
             # Make sure there's a newline after the content
-            if Preview.normalize_cr_newlines in mode:
-                if dst and dst[-1] != "\n" and dst[-1] != "\r":
-                    dst += newline
-            else:
-                if dst and dst[-1] != "\n":
-                    dst += "\n"
+            if dst and dst[-1] != "\n" and dst[-1] != "\r":
+                dst += newline
             f.write(dst)
         elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
             now = datetime.now(timezone.utc)
@@ -1138,7 +1161,15 @@ def check_stability_and_equivalence(
     equivalent, or if a second pass of the formatter would format the
     content differently.
     """
-    assert_equivalent(src_contents, dst_contents)
+    try:
+        assert_equivalent(src_contents, dst_contents)
+    except ASTSafetyError:
+        if _target_versions_exceed_runtime(mode.target_versions):
+            raise ASTSafetyError(
+                "failed to verify equivalence of the formatted output:"
+                f" {_version_mismatch_message(mode.target_versions)}"
+            ) from None
+        raise
     assert_stable(src_contents, dst_contents, mode=mode, lines=lines)
 
 
@@ -1314,16 +1345,15 @@ def format_str(
 def _format_str_once(
     src_contents: str, *, mode: Mode, lines: Collection[tuple[int, int]] = ()
 ) -> str:
-    if Preview.normalize_cr_newlines in mode:
-        normalized_contents, _, newline_type = decode_bytes(
-            src_contents.encode("utf-8"), mode
-        )
+    # Use the encoding overwrite since the src_contents may contain a different
+    # magic encoding comment than utf-8
+    normalized_contents, _, newline_type = decode_bytes(
+        src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
+    )
 
-        src_node = lib2to3_parse(
-            normalized_contents.lstrip(), target_versions=mode.target_versions
-        )
-    else:
-        src_node = lib2to3_parse(src_contents.lstrip(), mode.target_versions)
+    src_node = lib2to3_parse(
+        normalized_contents.lstrip(), target_versions=mode.target_versions
+    )
 
     dst_blocks: list[LinesBlock] = []
     if mode.target_versions:
@@ -1372,53 +1402,48 @@ def _format_str_once(
     for block in dst_blocks:
         dst_contents.extend(block.all_lines())
     if not dst_contents:
-        if Preview.normalize_cr_newlines in mode:
-            if "\n" in normalized_contents:
-                return newline_type
-        else:
-            # Use decode_bytes to retrieve the correct source newline (CRLF or LF),
-            # and check if normalized_content has more than one line
-            normalized_content, _, newline = decode_bytes(
-                src_contents.encode("utf-8"), mode
-            )
-            if "\n" in normalized_content:
-                return newline
-        return ""
-    if Preview.normalize_cr_newlines in mode:
-        return "".join(dst_contents).replace("\n", newline_type)
-    else:
-        return "".join(dst_contents)
+        if "\n" in normalized_contents:
+            return newline_type
+    return "".join(dst_contents).replace("\n", newline_type)
 
 
-def decode_bytes(src: bytes, mode: Mode) -> tuple[FileContent, Encoding, NewLine]:
+def decode_bytes(
+    src: bytes, mode: Mode, *, encoding_overwrite: str | None = None
+) -> tuple[FileContent, Encoding, NewLine]:
     """Return a tuple of (decoded_contents, encoding, newline).
 
-    `newline` is either CRLF or LF but `decoded_contents` is decoded with
+    `newline` is either CRLF, LF, or CR, but `decoded_contents` is decoded with
     universal newlines (i.e. only contains LF).
+
+    Use the keyword only encoding_overwrite argument if the bytes are encoded
+    differently to their possible encoding magic comment.
     """
     srcbuf = io.BytesIO(src)
+
+    # Still use detect encoding even if overrite set because otherwise lines
+    # might be different
     encoding, lines = tokenize.detect_encoding(srcbuf.readline)
+    if encoding_overwrite is not None:
+        encoding = encoding_overwrite
+
     if not lines:
         return "", encoding, "\n"
 
-    if Preview.normalize_cr_newlines in mode:
-        if lines[0][-2:] == b"\r\n":
-            if b"\r" in lines[0][:-2]:
-                newline = "\r"
-            else:
-                newline = "\r\n"
-        elif lines[0][-1:] == b"\n":
-            if b"\r" in lines[0][:-1]:
-                newline = "\r"
-            else:
-                newline = "\n"
+    if lines[0][-2:] == b"\r\n":
+        if b"\r" in lines[0][:-2]:
+            newline = "\r"
         else:
-            if b"\r" in lines[0]:
-                newline = "\r"
-            else:
-                newline = "\n"
+            newline = "\r\n"
+    elif lines[0][-1:] == b"\n":
+        if b"\r" in lines[0][:-1]:
+            newline = "\r"
+        else:
+            newline = "\n"
     else:
-        newline = "\r\n" if lines[0][-2:] == b"\r\n" else "\n"
+        if b"\r" in lines[0]:
+            newline = "\r"
+        else:
+            newline = "\n"
 
     srcbuf.seek(0)
     with io.TextIOWrapper(srcbuf, encoding) as tiow:

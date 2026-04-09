@@ -19,7 +19,7 @@ from importlib.metadata import version as imp_version
 from io import BytesIO
 from pathlib import Path, WindowsPath
 from platform import system
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any, TypeVar
 from unittest.mock import MagicMock, patch
 
@@ -28,7 +28,7 @@ import pytest
 from click import unstyle
 from click.testing import CliRunner
 from packaging.version import Version
-from pathspec import PathSpec
+from pathspec import GitIgnoreSpec
 
 import pyink
 import pyink.files
@@ -2059,17 +2059,17 @@ class BlackTestCase(BlackBaseTestCase):
                 "try:\\\r# type: ignore\n pass\nfinally:\n pass\n",
                 mode=pyink.FileMode(),
             )
-            == "try:  # type: ignore\n    pass\nfinally:\n    pass\n"
+            == "try:  # type: ignore\r    pass\rfinally:\r    pass\r"
         )
-        assert pyink.format_str("{\r}", mode=pyink.FileMode()) == "{}\n"
-        assert pyink.format_str("pass #\r#\n", mode=pyink.FileMode()) == "pass  #\n#\n"
+        assert pyink.format_str("{\r}", mode=pyink.FileMode()) == "{}\r"
+        assert pyink.format_str("pass #\r#\n", mode=pyink.FileMode()) == "pass  #\r#\r"
 
-        assert pyink.format_str("x=\\\r\n1", mode=pyink.FileMode()) == "x = 1\n"
+        assert pyink.format_str("x=\\\r\n1", mode=pyink.FileMode()) == "x = 1\r\n"
         assert pyink.format_str("x=\\\n1", mode=pyink.FileMode()) == "x = 1\n"
-        assert pyink.format_str("x=\\\r1", mode=pyink.FileMode()) == "x = 1\n"
+        assert pyink.format_str("x=\\\r1", mode=pyink.FileMode()) == "x = 1\r"
         assert (
             pyink.format_str("class A\\\r\n:...", mode=pyink.FileMode())
-            == "class A: ...\n"
+            == "class A: ...\r\n"
         )
         assert (
             pyink.format_str("class A\\\n:...", mode=pyink.FileMode())
@@ -2077,14 +2077,41 @@ class BlackTestCase(BlackBaseTestCase):
         )
         assert (
             pyink.format_str("class A\\\r:...", mode=pyink.FileMode())
-            == "class A: ...\n"
+            == "class A: ...\r"
         )
 
-    def test_preview_newline_type_detection(self) -> None:
-        mode = Mode(enabled_features={Preview.normalize_cr_newlines})
+    def test_newline_type_detection(self) -> None:
+        mode = Mode()
         newline_types = ["A\n", "A\r\n", "A\r"]
         for test_case in itertools.permutations(newline_types):
             assert pyink.format_str("".join(test_case), mode=mode) == test_case[0] * 3
+
+    def test_decode_with_encoding(self) -> None:
+        # This uses temporary files since some editors (including GitHub)
+        # struggle with displaying and/or editing non utf-8 data
+        # \xfc is iso-8859-1 for ü
+        with NamedTemporaryFile(delete=False) as first_line:
+            first_line.write(
+                b"# -*- coding: iso-8859-1 -*-\n"
+                b"# 2002-11-22 J\xfcrgen Hermann <jh@web.de>\n"
+            )
+            first_line.close()
+            self.assertFalse(
+                ff(Path(first_line.name)),
+                "Failed to properly detect encoding",
+            )
+
+        with NamedTemporaryFile(delete=False) as second_line:
+            second_line.write(
+                b"#! /usr/bin/env python3\n"
+                b"# -*- coding: iso-8859-1 -*-\n"
+                b"# 2002-11-22 J\xfcrgen Hermann <jh@web.de>\n"
+            )
+            second_line.close()
+            self.assertFalse(
+                ff(Path(second_line.name)),
+                "Failed to properly detect encoding on second line",
+            )
 
 
 class TestCaching:
@@ -2138,6 +2165,15 @@ class TestCaching:
             # path is too long, but ensure the name of the cache file itself
             # doesn't get too crazy.
             assert len(cache_file.name) <= 96
+
+    def test_cache_file_path_ignores_python_cell_magic_separators(self) -> None:
+        mode = replace(DEFAULT_MODE, python_cell_magics={"../../../tmp/pwned"})
+        with cache_dir() as workspace:
+            cache_file = get_cache_file(mode)
+            assert cache_file.parent == workspace
+            assert "/" not in cache_file.name
+            assert ".." not in cache_file.name
+            assert "../../../tmp/pwned" not in mode.get_cache_key()
 
     def test_cache_broken_file(self) -> None:
         mode = DEFAULT_MODE
@@ -2416,7 +2452,7 @@ class TestCaching:
                 # If you are looking to remove one of these features, just
                 # replace it with any other feature.
                 values = [
-                    {Preview.multiline_string_handling},
+                    {Preview.wrap_comprehension_in},
                     {Preview.string_processing},
                 ]
             elif field.type is Quote:
@@ -2527,13 +2563,77 @@ class TestFileCollection:
         include = re.compile(r"\.pyi?$")
         exclude = re.compile(r"")
         report = pyink.Report()
-        gitignore = PathSpec.from_lines(
-            "gitwildmatch", ["exclude/", ".definitely_exclude"]
+        gitignore = GitIgnoreSpec.from_lines(
+            ["exclude/", ".definitely_exclude", "!exclude/still_exclude/"]
         )
         sources: list[Path] = []
         expected = [
             Path(path / "b/dont_exclude/a.py"),
             Path(path / "b/dont_exclude/a.pyi"),
+        ]
+        this_abs = THIS_DIR.resolve()
+        sources.extend(
+            pyink.gen_python_files(
+                path.iterdir(),
+                this_abs,
+                include,
+                exclude,
+                None,
+                None,
+                report,
+                {path: gitignore},
+                verbose=False,
+                quiet=False,
+            )
+        )
+        assert sorted(expected) == sorted(sources)
+
+    def test_gitignore_reinclude(self) -> None:
+        path = THIS_DIR / "data" / "include_exclude_tests"
+        include = re.compile(r"\.pyi?$")
+        exclude = re.compile(r"")
+        report = pyink.Report()
+        gitignore = GitIgnoreSpec.from_lines(
+            ["*/exclude/*", ".definitely_exclude", "!*/exclude/still_exclude/"]
+        )
+        sources: list[Path] = []
+        expected = [
+            Path(path / "b/dont_exclude/a.py"),
+            Path(path / "b/dont_exclude/a.pyi"),
+            Path(path / "b/exclude/still_exclude/a.py"),
+            Path(path / "b/exclude/still_exclude/a.pyi"),
+        ]
+        this_abs = THIS_DIR.resolve()
+        sources.extend(
+            pyink.gen_python_files(
+                path.iterdir(),
+                this_abs,
+                include,
+                exclude,
+                None,
+                None,
+                report,
+                {path: gitignore},
+                verbose=False,
+                quiet=False,
+            )
+        )
+        assert sorted(expected) == sorted(sources)
+
+    def test_gitignore_reinclude_root(self) -> None:
+        path = THIS_DIR / "data" / "include_exclude_tests" / "b"
+        include = re.compile(r"\.pyi?$")
+        exclude = re.compile(r"")
+        report = pyink.Report()
+        gitignore = GitIgnoreSpec.from_lines(
+            ["exclude/*", ".definitely_exclude", "!exclude/still_exclude/"]
+        )
+        sources: list[Path] = []
+        expected = [
+            Path(path / "dont_exclude/a.py"),
+            Path(path / "dont_exclude/a.pyi"),
+            Path(path / "exclude/still_exclude/a.py"),
+            Path(path / "exclude/still_exclude/a.pyi"),
         ]
         this_abs = THIS_DIR.resolve()
         sources.extend(
@@ -2653,6 +2753,9 @@ class TestFileCollection:
             Path(path / "b/exclude/a.pie"),
             Path(path / "b/exclude/a.py"),
             Path(path / "b/exclude/a.pyi"),
+            Path(path / "b/exclude/still_exclude/a.pie"),
+            Path(path / "b/exclude/still_exclude/a.py"),
+            Path(path / "b/exclude/still_exclude/a.pyi"),
             Path(path / "b/dont_exclude/a.pie"),
             Path(path / "b/dont_exclude/a.py"),
             Path(path / "b/dont_exclude/a.pyi"),
@@ -2680,6 +2783,7 @@ class TestFileCollection:
         src = [path]
         expected = [
             Path(path / "b/dont_exclude/a.py"),
+            Path(path / "b/exclude/still_exclude/a.py"),
             Path(path / "b/.definitely_exclude/a.py"),
         ]
         assert_collected_sources(
@@ -2691,6 +2795,7 @@ class TestFileCollection:
         src = [path]
         expected = [
             Path(path / "b/exclude/a.py"),
+            Path(path / "b/exclude/still_exclude/a.py"),
             Path(path / "b/dont_exclude/a.py"),
         ]
         assert_collected_sources(
@@ -2703,7 +2808,7 @@ class TestFileCollection:
         include = re.compile(pyink.DEFAULT_INCLUDES)
         exclude = re.compile(pyink.DEFAULT_EXCLUDES)
         report = pyink.Report()
-        gitignore = PathSpec.from_lines("gitwildmatch", [])
+        gitignore = GitIgnoreSpec.from_lines([])
 
         regular = MagicMock()
         regular.relative_to.return_value = Path("regular.py")
@@ -3166,6 +3271,53 @@ class TestASTSafety(BlackBaseTestCase):
         # can't match it directly.
         err.match("invalid character")
         err.match(r"\(<unknown>, line 1\)")
+
+    def test_target_version_exceeds_runtime_warning(self) -> None:
+        max_target = max(TargetVersion, key=lambda tv: tv.value)
+        if sys.version_info[1] >= max_target.value:
+            pytest.skip("no target version higher than runtime available")
+        target_name = f"py3{sys.version_info[1] + 1}"
+        code = "x = 1\n"
+        args = ["--target-version", target_name, "--code", code]
+        result = CliRunner().invoke(pyink.main, args)
+        stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
+        assert "Warning:" in stderr
+
+    def test_target_version_exceeds_runtime_no_warning_with_fast(self) -> None:
+        max_target = max(TargetVersion, key=lambda tv: tv.value)
+        if sys.version_info[1] >= max_target.value:
+            pytest.skip("no target version higher than runtime available")
+        target_name = f"py3{sys.version_info[1] + 1}"
+        code = "x = 1\n"
+        args = ["--fast", "--target-version", target_name, "--code", code]
+        result = CliRunner().invoke(pyink.main, args)
+        stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
+        assert "Warning:" not in stderr
+
+    def test_target_version_at_runtime_no_warning(self) -> None:
+        current_minor = sys.version_info[1]
+        target_name = f"py3{current_minor}"
+        code = "x = 1\n"
+        args = ["--target-version", target_name, "--code", code]
+        result = CliRunner().invoke(pyink.main, args)
+        stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
+        assert "Warning:" not in stderr
+
+    @pytest.mark.incompatible_with_mypyc
+    def test_target_version_exceeds_runtime_clear_error_message(self) -> None:
+        max_target = max(TargetVersion, key=lambda tv: tv.value)
+        if sys.version_info[1] >= max_target.value:
+            pytest.skip("no target version higher than runtime available")
+        future_target = TargetVersion[f"PY3{sys.version_info[1] + 1}"]
+        mode = Mode(target_versions={future_target})
+        with patch.object(
+            pyink,
+            "assert_equivalent",
+            side_effect=ASTSafetyError("mocked parse failure"),
+        ):
+            with pytest.raises(ASTSafetyError) as exc_info:
+                pyink.check_stability_and_equivalence("x = 1\n", "x = 1\n", mode=mode)
+            assert "INTERNAL ERROR" not in str(exc_info.value)
 
 
 try:

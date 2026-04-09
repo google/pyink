@@ -417,6 +417,15 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool, mode: Mode) -> str:
         if t == token.STAR:
             return NO
 
+    if Preview.simplify_power_operator_hugging in mode:
+        # Power operator hugging
+        if t == token.DOUBLESTAR and is_simple_exponentiation(p):
+            return NO
+        prevp = preceding_leaf(leaf)
+        if prevp and prevp.type == token.DOUBLESTAR:
+            if prevp.parent and is_simple_exponentiation(prevp.parent):
+                return NO
+
     return SPACE
 
 
@@ -544,6 +553,25 @@ def is_arith_like(node: LN) -> bool:
     }
 
 
+def is_simple_exponentiation(node: LN) -> bool:
+    """Whether whitespace around `**` should be removed."""
+
+    def is_simple(node: LN) -> bool:
+        if isinstance(node, Leaf):
+            return node.type in (token.NAME, token.NUMBER, token.DOT, token.DOUBLESTAR)
+        elif node.type == syms.factor:  # unary operators
+            return is_simple(node.children[1])
+        else:
+            return all(is_simple(child) for child in node.children)
+
+    return (
+        node.type == syms.power
+        and len(node.children) >= 3
+        and node.children[-2].type == token.DOUBLESTAR
+        and is_simple(node)
+    )
+
+
 def is_docstring(node: NL) -> bool:
     if isinstance(node, Leaf):
         if node.type != token.STRING:
@@ -662,7 +690,7 @@ def is_one_sequence_between(
             break
 
     else:
-        raise LookupError("Opening paren not found in `leaves`")
+        return False
 
     commas = 0
     _opening_index += 1
@@ -815,10 +843,6 @@ def is_parent_function_or_class(node: Node) -> bool:
     return node.parent.type in {syms.funcdef, syms.classdef}
 
 
-def is_function_or_class(node: Node) -> bool:
-    return node.type in {syms.funcdef, syms.classdef, syms.async_funcdef}
-
-
 def is_stub_suite(node: Node, mode: Mode) -> bool:
     """Return True if `node` is a suite with a stub body."""
     if (
@@ -937,7 +961,7 @@ def is_async_stmt_or_funcdef(leaf: Leaf) -> bool:
 def is_type_comment(leaf: Leaf, mode: Mode) -> bool:
     """Return True if the given leaf is a type comment. This function should only
     be used for general type comments (excluding ignore annotations, which should
-    use `is_type_ignore_comment`). Note that general type comments are no longer
+    use `is_pragma_comment`). Note that general type comments are no longer
     used in modern version of Python, this function may be deprecated in the future."""
     t = leaf.type
     v = leaf.value
@@ -945,15 +969,11 @@ def is_type_comment(leaf: Leaf, mode: Mode) -> bool:
 
 
 def is_type_comment_string(value: str, mode: Mode) -> bool:
-    if Preview.standardize_type_comments in mode:
-        is_valid = value.startswith("#") and value[1:].lstrip().startswith("type:")
-    else:
-        is_valid = value.startswith("# type:")
-    return is_valid
+    return value.startswith("#") and value[1:].lstrip().startswith("type:")
 
 
 def is_pragma_comment(leaf: Leaf, mode: Mode) -> bool:
-    """Return True if the given leaf is a type comment with ignore annotation."""
+    """Return True if the given leaf is an annotation pragma (e.g., type: ignore, pylint, noqa)."""
     t = leaf.type
     v = leaf.value
     return t in {token.COMMENT, STANDALONE_COMMENT} and (
@@ -964,14 +984,9 @@ def is_pragma_comment(leaf: Leaf, mode: Mode) -> bool:
 def is_type_ignore_comment_string(value: str, mode: Mode) -> bool:
     """Return True if the given string match with type comment with
     ignore annotation."""
-    if Preview.standardize_type_comments in mode:
-        is_valid = is_type_comment_string(value, mode) and value.split(":", 1)[
-            1
-        ].lstrip().startswith("ignore")
-    else:
-        is_valid = value.startswith("# type: ignore")
-
-    return is_valid
+    return is_type_comment_string(value, mode) and value.split(":", 1)[
+        1
+    ].lstrip().startswith("ignore")
 
 
 def wrap_in_parentheses(parent: Node, child: LN, *, visible: bool = True) -> None:
