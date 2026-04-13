@@ -708,10 +708,10 @@ class EmptyLineTracker:
             and not self.previous_line.depth
             and not current_line.depth
             and not current_line.is_import
-            and not current_line.is_comment
             and not current_line.is_fmt_pass_converted(first_leaf_matches=is_import)
+            and not current_line.is_fmt_pass_converted()
         ):
-            return (before or 1), 0
+            return 1, 0
 
         if (
             (
