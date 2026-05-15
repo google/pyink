@@ -1917,9 +1917,10 @@ def maybe_make_parens_invisible_in_atom(
         middle = node.children[1]
         # make parentheses invisible
         if (
-            # If the prefix of `middle` includes a type comment with
+            # If the prefix of `middle` or `last` includes a type comment with
             # ignore annotation, then we do not remove the parentheses
             not ink_comments.comment_contains_pragma(middle.prefix.strip(), mode)
+            and not ink_comments.comment_contains_pragma(last.prefix.strip(), mode)
         ):
             first.value = ""
             last.value = ""

@@ -72,7 +72,9 @@ normal_name = (
         [1, 2, 3], arg1, [1, 2, 3], arg2, [1, 2, 3], arg3
     )
 )
-string_variable_name = "a string that is waaaaaaaayyyyyyyy too long, even in parens, there's nothing you can do"  # noqa
+string_variable_name = (
+    "a string that is waaaaaaaayyyyyyyy too long, even in parens, there's nothing you can do"  # noqa
+)
 for key in """
     hostname
     port
