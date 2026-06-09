@@ -324,9 +324,9 @@ class LineGenerator(Visitor[Line]):
 
     def visit_suite(self, node: Node) -> Iterator[Line]:
         """Visit a suite."""
-        if (
-            self.mode.is_pyi or not self.mode.is_pyink
-        ) and is_stub_suite(node, self.mode):
+        if (self.mode.is_pyi or not self.mode.is_pyink) and is_stub_suite(
+            node, self.mode
+        ):
             yield from self.visit(node.children[2])
         else:
             yield from self.visit_default(node)

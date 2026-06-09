@@ -1004,8 +1004,7 @@ def can_omit_invisible_parens(
         # conflict with type: ignore comments in the body
         if head_comments:
             has_type_ignore_in_head = any(
-                is_pragma_comment(comment, rhs.head.mode)
-                for comment in head_comments
+                is_pragma_comment(comment, rhs.head.mode) for comment in head_comments
             )
             has_other_comment_in_head = any(
                 not is_pragma_comment(comment, rhs.head.mode)

@@ -3057,15 +3057,12 @@ class TestFileCollection:
         assert result.stdout_bytes is not None
 
         stdout = self.decode_and_normalized(result.stdout_bytes)
-        assert (
-            """\
+        assert """\
 -from very.long.package.path.my_org.my_very_long_project_name.awesome_backend.core_framework.util import my_long_module_name
 +from very.long.package.path.my_org.my_very_long_project_name.awesome_backend.core_framework.util import (
 +    my_long_module_name,
 +)
-"""
-            in stdout
-        )
+""" in stdout
         assert "- pass\n+    pass\n" in stdout
 
     def test_pyink_in_tool_black(self) -> None:

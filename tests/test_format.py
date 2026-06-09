@@ -52,9 +52,16 @@ def check_file(subdir: str, filename: str, *, data: bool = True) -> None:
 @pytest.mark.parametrize(
     "filename",
     [
-        pytest.param(name, marks=pytest.mark.skip(reason="Skipping to suppress black incompatibility."))
-        if name in ["preview_comments7", "import_line_collapse"]
-        else name
+        (
+            pytest.param(
+                name,
+                marks=pytest.mark.skip(
+                    reason="Skipping to suppress black incompatibility."
+                ),
+            )
+            if name in ["preview_comments7", "import_line_collapse"]
+            else name
+        )
         for name in all_data_cases("cases")
     ],
 )

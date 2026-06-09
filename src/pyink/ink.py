@@ -90,6 +90,7 @@ def unicode_escape_json(src: str) -> str:
     Returns:
       A serialized JSON string with unicode escaped characters.
     """
+
     def _match_to_unicode(match: re.Match[str]) -> str:
         char = match.group(0)
         return f"\\u{hex(ord(char))[2:].zfill(4)}"
