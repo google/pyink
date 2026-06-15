@@ -79,7 +79,9 @@ class Cache:
             try:
                 data: dict[str, tuple[float, int, str]] = pickle.load(fobj)
                 file_data = {k: FileData(*v) for k, v in data.items()}
-            except (pickle.UnpicklingError, ValueError, IndexError):
+            except (pickle.UnpicklingError, ValueError, IndexError, EOFError):
+                # EOFError can occur when the cache file is truncated (e.g., due
+                # to a crash or interrupted write). Treat it as a cache miss.
                 return cls(mode, cache_file)
 
         return cls(mode, cache_file, file_data)

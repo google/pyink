@@ -33,6 +33,11 @@ class Report:
     same_count: int = 0
     failure_count: int = 0
 
+    @property
+    def total_count(self) -> int:
+        """Return the total number of files processed (changed + unchanged + failed)."""
+        return self.change_count + self.same_count + self.failure_count
+
     def done(self, src: Path, changed: Changed) -> None:
         """Increment the counter for successful reformatting. Write out a message."""
         if changed is Changed.YES:
