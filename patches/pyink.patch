@@ -1122,6 +1122,26 @@
  
  [tool.mypy]
  # Specify the target platform details in config, so your developers are
+--- a/ranges.py
++++ b/ranges.py
+@@ -4,6 +4,7 @@ import difflib
+ from collections.abc import Collection, Iterator, Sequence
+ from dataclasses import dataclass
+ 
++from pyink import ink_ranges
+ from pyink.nodes import (
+     LN,
+     STANDALONE_COMMENT,
+@@ -180,6 +181,9 @@ def convert_unchanged_lines(src_node: No
+     lines_set: set[int] = set()
+     for start, end in lines:
+         lines_set.update(range(start, end + 1))
++    lines_set.update(
++        ink_ranges.expand_lines_for_incompatible_formatting(src_node, lines_set)
++    )
+     visitor = _TopLevelStatementsVisitor(lines_set)
+     _ = list(visitor.visit(src_node))  # Consume all results.
+     _convert_unchanged_line_by_line(src_node, lines_set)
 --- a/resources/pyink.schema.json
 +++ b/resources/pyink.schema.json
 @@ -1,7 +1,7 @@
@@ -1202,7 +1222,7 @@
      port
 --- a/tests/data/cases/torture.py
 +++ b/tests/data/cases/torture.py
-@@ -57,9 +57,9 @@ 0 ^ 0  #
+@@ -57,9 +57,9 @@ importA
  class A:
      def foo(self):
          for _ in range(10):
@@ -1216,7 +1236,7 @@
  def test(self, othr):
 --- a/tests/empty.toml
 +++ b/tests/empty.toml
-@@ -1,1 +1,5 @@
+@@ -1 +1,5 @@
  # Empty configuration file; used in tests to avoid interference from Black's own config.
 +
 +# Explicitly disable _Pyink_ mode so it's the same as the default _Black_ style.
