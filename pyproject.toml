@@ -35,7 +35,7 @@ classifiers = [
     "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
-    "click>=8.0.0",
+    "click>=8.0.0,<8.4.0",
     "mypy-extensions>=0.4.3",
     "packaging>=22.0",
     "pathspec>=1.0.0",

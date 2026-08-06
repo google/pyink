@@ -1051,6 +1051,15 @@
  classifiers = [
      "Development Status :: 5 - Production/Stable",
      "Environment :: Console",
+@@ -53,7 +35,7 @@ classifiers = [
+     "Topic :: Software Development :: Quality Assurance",
+ ]
+ dependencies = [
+-    "click>=8.0.0",
++    "click>=8.0.0,<8.4.0",
+     "mypy-extensions>=0.4.3",
+     "packaging>=22.0",
+     "pathspec>=1.0.0",
 @@ -61,8 +43,9 @@ dependencies = [
      "pytokens~=0.4.0",
      "tomli>=1.1.0; python_version<'3.11'",
@@ -1202,7 +1211,7 @@
      port
 --- a/tests/data/cases/torture.py
 +++ b/tests/data/cases/torture.py
-@@ -57,9 +57,9 @@ 0 ^ 0  #
+@@ -57,9 +57,9 @@ importA
  class A:
      def foo(self):
          for _ in range(10):
@@ -1216,7 +1225,7 @@
  def test(self, othr):
 --- a/tests/empty.toml
 +++ b/tests/empty.toml
-@@ -1,1 +1,5 @@
+@@ -1 +1,5 @@
  # Empty configuration file; used in tests to avoid interference from Black's own config.
 +
 +# Explicitly disable _Pyink_ mode so it's the same as the default _Black_ style.
