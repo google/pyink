@@ -4,6 +4,7 @@ import difflib
 from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass
 
+from pyink import ink_ranges
 from pyink.nodes import (
     LN,
     STANDALONE_COMMENT,
@@ -180,6 +181,9 @@ def convert_unchanged_lines(src_node: Node, lines: Collection[tuple[int, int]]) 
     lines_set: set[int] = set()
     for start, end in lines:
         lines_set.update(range(start, end + 1))
+    lines_set.update(
+        ink_ranges.expand_lines_for_incompatible_formatting(src_node, lines_set)
+    )
     visitor = _TopLevelStatementsVisitor(lines_set)
     _ = list(visitor.visit(src_node))  # Consume all results.
     _convert_unchanged_line_by_line(src_node, lines_set)
