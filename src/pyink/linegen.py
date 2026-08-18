@@ -1886,7 +1886,11 @@ def maybe_make_parens_invisible_in_atom(
             # Remove parentheses around multiple exception types in except and
             # except* without as. See PEP 758 for details.
             and not (
-                Feature.UNPARENTHESIZED_EXCEPT_TYPES in features
+                # GOOGLE: Disable this feature for now because it is very
+                # disruptive and the formatted syntax isn't compatible with
+                # Python <= 3.13.
+                False
+                # Feature.UNPARENTHESIZED_EXCEPT_TYPES in features
                 # is a tuple
                 and is_tuple(node)
                 # has a parent node

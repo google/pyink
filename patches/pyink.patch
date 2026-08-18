@@ -543,7 +543,20 @@
          if _ensure_trailing_comma(leaves, original, opening_bracket):
              for i in range(len(leaves) - 1, -1, -1):
                  if leaves[i].type == STANDALONE_COMMENT:
-@@ -1879,9 +1931,10 @@ def maybe_make_parens_invisible_in_atom(
+@@ -1834,7 +1886,11 @@ def maybe_make_parens_invisible_in_atom(
+             # Remove parentheses around multiple exception types in except and
+             # except* without as. See PEP 758 for details.
+             and not (
+-                Feature.UNPARENTHESIZED_EXCEPT_TYPES in features
++                # GOOGLE: Disable this feature for now because it is very
++                # disruptive and the formatted syntax isn't compatible with
++                # Python <= 3.13.
++                False
++                # Feature.UNPARENTHESIZED_EXCEPT_TYPES in features
+                 # is a tuple
+                 and is_tuple(node)
+                 # has a parent node
+@@ -1879,9 +1935,10 @@ def maybe_make_parens_invisible_in_atom(
          middle = node.children[1]
          # make parentheses invisible
          if (
@@ -556,7 +569,7 @@
          ):
              first.value = ""
              last.value = ""
-@@ -1955,7 +2008,7 @@ def generate_trailers_to_omit(line: Line
+@@ -1955,7 +2012,7 @@ def generate_trailers_to_omit(line: Line
      if not line.magic_trailing_comma:
          yield omit
  
@@ -565,7 +578,7 @@
      opening_bracket: Leaf | None = None
      closing_bracket: Leaf | None = None
      inner_brackets: set[LeafID] = set()
-@@ -2030,7 +2083,7 @@ def _over_length_only_due_to_subscript_c
+@@ -2030,7 +2087,7 @@ def _over_length_only_due_to_subscript_c
      if not line.leaves:
          return False
      # The over-length must be caused entirely by a trailing comment.
@@ -574,7 +587,7 @@
      leaves_iter = iter(line.leaves)
      first = next(leaves_iter)
      text_without_comments = f"{first.prefix}{indent}{first.value}"
-@@ -2071,7 +2124,7 @@ def run_transformer(
+@@ -2071,7 +2128,7 @@ def run_transformer(
          or not line.bracket_tracker.invisible
          or any(bracket.value for bracket in line.bracket_tracker.invisible)
          or line.contains_multiline_strings()
@@ -1385,16 +1398,25 @@
          ):
 --- a/tests/test_format.py
 +++ b/tests/test_format.py
-@@ -50,7 +50,15 @@ def check_file(subdir: str, filename: st
+@@ -49,8 +49,24 @@ def check_file(subdir: str, filename: st
+         )
  
  
++_DISABLED_TESTS = frozenset([
++    "preview_comments7",
++    "import_line_collapse",
++    # Feature.UNPARENTHESIZED_EXCEPT_TYPES is disabled for now.
++    "remove_except_types_parens",
++])
++
++
  @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
 -@pytest.mark.parametrize("filename", all_data_cases("cases"))
 +@pytest.mark.parametrize(
 +    "filename",
 +    [
 +        pytest.param(name, marks=pytest.mark.skip(reason="Skipping to suppress black incompatibility."))
-+        if name in ["preview_comments7", "import_line_collapse"]
++        if name in _DISABLED_TESTS
 +        else name
 +        for name in all_data_cases("cases")
 +    ],

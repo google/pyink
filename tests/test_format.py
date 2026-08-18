@@ -49,12 +49,20 @@ def check_file(subdir: str, filename: str, *, data: bool = True) -> None:
         )
 
 
+_DISABLED_TESTS = frozenset([
+    "preview_comments7",
+    "import_line_collapse",
+    # Feature.UNPARENTHESIZED_EXCEPT_TYPES is disabled for now.
+    "remove_except_types_parens",
+])
+
+
 @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
 @pytest.mark.parametrize(
     "filename",
     [
         pytest.param(name, marks=pytest.mark.skip(reason="Skipping to suppress black incompatibility."))
-        if name in ["preview_comments7", "import_line_collapse"]
+        if name in _DISABLED_TESTS
         else name
         for name in all_data_cases("cases")
     ],
