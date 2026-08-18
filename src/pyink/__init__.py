@@ -74,6 +74,7 @@ from pyink.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
 from pyink.parsing import (  # noqa F401
     ASTSafetyError,
     InvalidInput,
+    SourceASTParseError,
     lib2to3_parse,
     parse_ast,
     stringify_ast,
@@ -120,7 +121,7 @@ FileMode = Mode
 
 
 def read_pyproject_toml(
-    ctx: click.Context, param: click.Parameter, value: str | None
+    ctx: click.Context, param: click.Parameter | None, value: str | None
 ) -> str | None:
     """Inject Black configuration from "pyproject.toml" into defaults in `ctx`.
 
@@ -1163,6 +1164,8 @@ def check_stability_and_equivalence(
     """
     try:
         assert_equivalent(src_contents, dst_contents)
+    except SourceASTParseError:
+        raise
     except ASTSafetyError:
         if _target_versions_exceed_runtime(mode.target_versions):
             raise ASTSafetyError(
@@ -1420,7 +1423,7 @@ def decode_bytes(
     """
     srcbuf = io.BytesIO(src)
 
-    # Still use detect encoding even if overrite set because otherwise lines
+    # Still use detect encoding even if overwrite set because otherwise lines
     # might be different
     encoding, lines = tokenize.detect_encoding(srcbuf.readline)
     if encoding_overwrite is not None:
@@ -1469,6 +1472,8 @@ def get_features_used(
     - match statements;
     - except* clause;
     - variadic generics;
+    - lazy imports;
+    - starred or double-starred comprehensions.
     """
     features: set[Feature] = set()
     if future_imports:
@@ -1505,11 +1510,17 @@ def get_features_used(
         elif n.type == token.COLONEQUAL:
             features.add(Feature.ASSIGNMENT_EXPRESSIONS)
 
+        elif n.type == token.LAZY:
+            features.add(Feature.LAZY_IMPORTS)
+
         elif n.type == syms.decorator:
             if len(n.children) > 1 and not is_simple_decorator_expression(
                 n.children[1]
             ):
                 features.add(Feature.RELAXED_DECORATORS)
+
+        elif is_unpacking_comprehension(n):
+            features.add(Feature.UNPACKING_IN_COMPREHENSIONS)
 
         elif (
             n.type in {syms.typedargslist, syms.arglist}
@@ -1612,6 +1623,19 @@ def get_features_used(
     return features
 
 
+def is_unpacking_comprehension(node: LN) -> bool:
+    if node.type not in {syms.listmaker, syms.testlist_gexp, syms.dictsetmaker}:
+        return False
+
+    if not any(
+        child.type in {syms.comp_for, syms.old_comp_for} for child in node.children
+    ):
+        return False
+
+    first_child = node.children[0]
+    return first_child.type == syms.star_expr or first_child.type == token.DOUBLESTAR
+
+
 def _contains_asexpr(node: Node | Leaf) -> bool:
     """Return True if `node` contains an as-pattern."""
     if node.type == syms.asexpr_test:
@@ -1677,6 +1701,9 @@ def get_future_imports(node: Node) -> set[str]:
             break
 
         elif first_child.type == syms.import_from:
+            if first_child.children[0].type == token.LAZY:
+                break
+
             module_name = first_child.children[1]
             if not isinstance(module_name, Leaf) or module_name.value != "__future__":
                 break
@@ -1700,7 +1727,7 @@ def assert_equivalent(src: str, dst: str) -> None:
     try:
         src_ast = parse_ast(src)
     except Exception as exc:
-        raise ASTSafetyError(
+        raise SourceASTParseError(
             "cannot use --safe with this file; failed to parse source file AST: "
             f"{exc}\n"
             "This could be caused by running Black with an older Python version "

@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, patch
 import click
 import pytest
 from click import unstyle
-from click.testing import CliRunner
+from click.testing import CliRunner as _CliRunner
 from packaging.version import Version
 from pathspec import GitIgnoreSpec
 
@@ -38,7 +38,7 @@ from pyink.cache import FileData, get_cache_dir, get_cache_file
 from pyink.debug import DebugVisitor
 from pyink.mode import Mode, Preview, Quote, QuoteStyle
 from pyink.output import color_diff, diff
-from pyink.parsing import ASTSafetyError
+from pyink.parsing import ASTSafetyError, SourceASTParseError
 from pyink.report import Report
 from pyink.strings import lines_with_leading_tabs_expanded
 
@@ -105,14 +105,7 @@ class FakeContext(click.Context):
         self.obj: dict[str, Any] = {"root": PROJECT_ROOT}
 
 
-class FakeParameter(click.Parameter):
-    """A fake click Parameter for when calling functions that need it."""
-
-    def __init__(self) -> None:
-        pass
-
-
-class BlackRunner(CliRunner):
+class BlackRunner(_CliRunner):
     """Make sure STDOUT and STDERR are kept separate when testing Black via its CLI."""
 
     def __init__(self) -> None:
@@ -271,6 +264,19 @@ class BlackTestCase(BlackBaseTestCase):
             root = pyink.lib2to3_parse(sample)
             features = pyink.get_features_used(root)
             self.assertIn(pyink.Feature.TYPE_PARAM_DEFAULTS, features)
+
+    def test_python315_version_detection(self) -> None:
+        source, _ = read_data("cases", "python315")
+        root = pyink.lib2to3_parse(source)
+        features = pyink.get_features_used(root)
+        self.assertIn(pyink.Feature.LAZY_IMPORTS, features)
+        self.assertIn(pyink.Feature.UNPACKING_IN_COMPREHENSIONS, features)
+        self.assertNotIn(
+            pyink.Feature.LAZY_IMPORTS,
+            pyink.get_features_used(pyink.lib2to3_parse("lazy = 1\n")),
+        )
+        versions = pyink.detect_target_versions(root)
+        self.assertIn(pyink.TargetVersion.PY315, versions)
 
     def test_expression_ff(self) -> None:
         source, expected = read_data("cases", "expression.py")
@@ -432,6 +438,17 @@ class BlackTestCase(BlackBaseTestCase):
         pyink.assert_stable(source, actual, DEFAULT_MODE)
         # ensure black can parse this when the target is 3.7
         self.invokeBlack([str(source_path), "--target-version", "py37"])
+
+    @patch("pyink.dump_to_file", dump_to_stderr)
+    def test_python315(self) -> None:
+        source_path = get_case_path("cases", "python315")
+        _, source, expected = read_data_from_file(source_path)
+        actual = fs(source)
+        self.assertFormatEqual(expected, actual)
+        if sys.version_info >= (3, 15):
+            pyink.assert_equivalent(source, actual)
+        pyink.assert_stable(source, actual, DEFAULT_MODE)
+        self.invokeBlack([str(source_path), "--target-version", "py315", "--fast"])
 
     def test_tab_comment_indentation(self) -> None:
         contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t# comment\n\tpass\n"
@@ -1001,8 +1018,13 @@ class BlackTestCase(BlackBaseTestCase):
         invalid = "return if you can"
         with self.assertRaises(pyink.InvalidInput) as e:
             pyink.format_file_contents(invalid, mode=mode, fast=False)
-        self.assertEqual(str(e.exception), "Cannot parse: 1:7: return if you can")
-
+        self.assertEqual(
+            str(e.exception),
+            "Cannot parse: 1:7\n"
+            "    return if you can\n"
+            "          ^\n"
+            "ParseError: bad input",
+        )
         just_crlf = "\r\n"
         with self.assertRaises(pyink.NothingChanged):
             pyink.format_file_contents(just_crlf, mode=mode, fast=False)
@@ -1146,7 +1168,7 @@ class BlackTestCase(BlackBaseTestCase):
 
     def test_pipe_force_pyi(self) -> None:
         source, expected = read_data("miscellaneous", "force_pyi")
-        result = CliRunner().invoke(
+        result = BlackRunner().invoke(
             pyink.main, ["-", "-q", "--pyi"], input=BytesIO(source.encode("utf-8"))
         )
         self.assertEqual(result.exit_code, 0)
@@ -1194,7 +1216,7 @@ class BlackTestCase(BlackBaseTestCase):
 
     def test_pipe_force_py36(self) -> None:
         source, expected = read_data("miscellaneous", "force_py36")
-        result = CliRunner().invoke(
+        result = BlackRunner().invoke(
             pyink.main,
             ["-", "-q", "--target-version=py36"],
             input=BytesIO(source.encode("utf-8")),
@@ -1524,6 +1546,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             (
@@ -1534,6 +1557,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             ("<3.6", [TargetVersion.PY33, TargetVersion.PY34, TargetVersion.PY35]),
@@ -1546,6 +1570,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             (
@@ -1557,6 +1582,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             (
@@ -1572,6 +1598,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             (
@@ -1589,6 +1616,7 @@ class BlackTestCase(BlackBaseTestCase):
                     TargetVersion.PY312,
                     TargetVersion.PY313,
                     TargetVersion.PY314,
+                    TargetVersion.PY315,
                 ],
             ),
             ("==3.8.*", [TargetVersion.PY38]),
@@ -1610,7 +1638,7 @@ class BlackTestCase(BlackBaseTestCase):
     def test_read_pyproject_toml(self) -> None:
         test_toml_file = THIS_DIR / "test.toml"
         fake_ctx = FakeContext()
-        pyink.read_pyproject_toml(fake_ctx, FakeParameter(), str(test_toml_file))
+        pyink.read_pyproject_toml(fake_ctx, None, str(test_toml_file))
         config = fake_ctx.default_map
         self.assertEqual(config["verbose"], "1")
         self.assertEqual(config["check"], "no")
@@ -1642,7 +1670,7 @@ class BlackTestCase(BlackBaseTestCase):
             fake_ctx.params["stdin_filename"] = str(src_python)
 
             with change_directory(root):
-                pyink.read_pyproject_toml(fake_ctx, FakeParameter(), None)
+                pyink.read_pyproject_toml(fake_ctx, None, None)
 
             config = fake_ctx.default_map
             self.assertEqual(config["verbose"], "1")
@@ -1823,7 +1851,7 @@ class BlackTestCase(BlackBaseTestCase):
         """Test the code option with no changes."""
         code = 'print("Hello world")\n'
         args = ["--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
 
         self.compare_results(result, code, 0)
 
@@ -1833,20 +1861,20 @@ class BlackTestCase(BlackBaseTestCase):
         formatted = pyink.format_str(code, mode=DEFAULT_MODE)
 
         args = ["--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
 
         self.compare_results(result, formatted, 0)
 
     def test_code_option_check(self) -> None:
         """Test the code option when check is passed."""
         args = ["--check", "--code", 'print("Hello world")\n']
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
         self.compare_results(result, "", 0)
 
     def test_code_option_check_changed(self) -> None:
         """Test the code option when changes are required, and check is passed."""
         args = ["--check", "--code", "print('hello world')"]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
         self.compare_results(result, "", 1)
 
     def test_code_option_diff(self) -> None:
@@ -1856,7 +1884,7 @@ class BlackTestCase(BlackBaseTestCase):
         result_diff = diff(code, formatted, "STDIN", "STDOUT")
 
         args = ["--diff", "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
 
         # Remove time from diff
         output = DIFF_TIME.sub("", result.output)
@@ -1873,7 +1901,7 @@ class BlackTestCase(BlackBaseTestCase):
         result_diff = color_diff(result_diff)
 
         args = ["--diff", "--color", "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
 
         # Remove time from diff
         output = DIFF_TIME.sub("", result.output)
@@ -1890,7 +1918,7 @@ class BlackTestCase(BlackBaseTestCase):
             error_msg = f"{code}\nerror: cannot format <string>: \n"
 
             args = ["--safe", "--code", code]
-            result = CliRunner().invoke(pyink.main, args)
+            result = BlackRunner().invoke(pyink.main, args)
 
             assert error_msg == result.output
             assert result.exit_code == 123
@@ -1903,7 +1931,7 @@ class BlackTestCase(BlackBaseTestCase):
             formatted = pyink.format_str(code, mode=DEFAULT_MODE)
 
             args = ["--fast", "--code", code]
-            result = CliRunner().invoke(pyink.main, args)
+            result = BlackRunner().invoke(pyink.main, args)
 
             self.compare_results(result, formatted, 0)
 
@@ -1916,7 +1944,7 @@ class BlackTestCase(BlackBaseTestCase):
             args = ["--code", "print"]
             # This is the only directory known to contain a pyproject.toml
             with change_directory(PROJECT_ROOT):
-                CliRunner().invoke(pyink.main, args)
+                BlackRunner().invoke(pyink.main, args)
                 pyproject_path = Path(Path.cwd(), "pyproject.toml").resolve()
 
             assert (
@@ -1936,7 +1964,7 @@ class BlackTestCase(BlackBaseTestCase):
         with patch.object(pyink, "parse_pyproject_toml", return_value={}) as parse:
             with change_directory(THIS_DIR):
                 args = ["--code", "print"]
-                CliRunner().invoke(pyink.main, args)
+                BlackRunner().invoke(pyink.main, args)
 
                 pyproject_path = Path(Path().cwd().parent, "pyproject.toml").resolve()
                 assert (
@@ -1955,7 +1983,14 @@ class BlackTestCase(BlackBaseTestCase):
         with pytest.raises(pyink.parsing.InvalidInput) as exc_info:
             pyink.lib2to3_parse("print(", {})
 
-        exc_info.match("Cannot parse: 1:6: Unexpected EOF in multi-line statement")
+        exc_info.match(
+            re.escape(
+                "Cannot parse: 1:6\n"
+                "    print(\n"
+                "         ^\n"
+                "TokenError: Unexpected EOF in multi-line statement"
+            )
+        )
 
     def test_line_ranges_with_code_option(self) -> None:
         code = textwrap.dedent("""\
@@ -1963,7 +1998,7 @@ class BlackTestCase(BlackBaseTestCase):
                 print  ( "OK" )
             """)
         args = ["--line-ranges=1-1", "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
 
         expected = textwrap.dedent("""\
             if a == b:
@@ -1998,7 +2033,7 @@ class BlackTestCase(BlackBaseTestCase):
                 encoding="utf-8",
             )
             args = ["--line-ranges=1-1", str(test_file)]
-            result = CliRunner().invoke(pyink.main, args)
+            result = BlackRunner().invoke(pyink.main, args)
             assert not result.exit_code
 
             formatted = test_file.read_text(encoding="utf-8")
@@ -2015,17 +2050,25 @@ class BlackTestCase(BlackBaseTestCase):
             test2_file = Path(workspace) / "test2.py"
             test2_file.write_text("", encoding="utf-8")
             args = ["--line-ranges=1-1", str(test1_file), str(test2_file)]
-            result = CliRunner().invoke(pyink.main, args)
+            result = BlackRunner().invoke(pyink.main, args)
             assert result.exit_code == 1
-            assert "Cannot use --line-ranges to format multiple files" in result.output
+            assert result.stderr_bytes is not None
+            assert (
+                "Cannot use --line-ranges to format multiple files"
+                in result.stderr_bytes.decode()
+            )
 
     def test_line_ranges_with_ipynb(self) -> None:
         with TemporaryDirectory() as workspace:
             test_file = Path(workspace) / "test.ipynb"
             test_file.write_text("{}", encoding="utf-8")
             args = ["--line-ranges=1-1", "--ipynb", str(test_file)]
-            result = CliRunner().invoke(pyink.main, args)
-            assert "Cannot use --line-ranges with ipynb files" in result.output
+            result = BlackRunner().invoke(pyink.main, args)
+            assert result.stderr_bytes is not None
+            assert (
+                "Cannot use --line-ranges with ipynb files"
+                in result.stderr_bytes.decode()
+            )
             assert result.exit_code == 1
 
     def test_line_ranges_in_pyproject_toml(self) -> None:
@@ -2258,7 +2301,7 @@ class TestCaching:
     def test_no_cache_when_stdin(self) -> None:
         mode = DEFAULT_MODE
         with cache_dir():
-            result = CliRunner().invoke(
+            result = BlackRunner().invoke(
                 pyink.main, ["-"], input=BytesIO(b"print('hello')")
             )
             assert not result.exit_code
@@ -3263,7 +3306,7 @@ class TestASTSafety(BlackBaseTestCase):
         )
 
     def test_equivalency_ast_parse_failure_includes_error(self) -> None:
-        with pytest.raises(ASTSafetyError) as err:
+        with pytest.raises(SourceASTParseError) as err:
             pyink.assert_equivalent("a«»a  = 1", "a«»a  = 1")
 
         err.match("--safe")
@@ -3279,7 +3322,7 @@ class TestASTSafety(BlackBaseTestCase):
         target_name = f"py3{sys.version_info[1] + 1}"
         code = "x = 1\n"
         args = ["--target-version", target_name, "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
         stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
         assert "Warning:" in stderr
 
@@ -3290,7 +3333,7 @@ class TestASTSafety(BlackBaseTestCase):
         target_name = f"py3{sys.version_info[1] + 1}"
         code = "x = 1\n"
         args = ["--fast", "--target-version", target_name, "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
         stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
         assert "Warning:" not in stderr
 
@@ -3299,7 +3342,7 @@ class TestASTSafety(BlackBaseTestCase):
         target_name = f"py3{current_minor}"
         code = "x = 1\n"
         args = ["--target-version", target_name, "--code", code]
-        result = CliRunner().invoke(pyink.main, args)
+        result = BlackRunner().invoke(pyink.main, args)
         stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
         assert "Warning:" not in stderr
 
