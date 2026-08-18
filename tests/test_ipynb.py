@@ -37,7 +37,6 @@ PYINK_JUPYTER_MODE = Mode(
     is_ipynb=True,
     pyink_indentation=2,
     pyink_ipynb_indentation=2,
-    pyink_ipynb_unicode_escape=True,
 )
 
 EMPTY_CONFIG = DATA_DIR / "empty_pyproject.toml"
@@ -466,8 +465,8 @@ def test_entire_notebook_with_pyink_overrides() -> None:
         '        "%%time\\n",\n'
         '        "\\n",\n'
         '        "a = 1\\n",\n'
-        '        "if a \\u003c 1 or a \\u003e 1:\\n",\n'
-        '        "    print(\\"\\u0026\\u003c\\u003e\\")"\n'
+        '        "if a < 1 or a > 1:\\n",\n'
+        '        "    print(\\"&<>\\")"\n'
         "      ]\n"
         "    }\n"
         "  ],\n"
