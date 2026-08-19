@@ -57,27 +57,6 @@ def majority_quote(node: nodes_mod.LN) -> mode.Quote:
   return mode.Quote.DOUBLE
 
 
-def unicode_escape_json(src: str) -> str:
-  """Escapes problematic unicode characters in JSON string.
-
-  This mimicks the implementation in Colab backend and converts characters
-  <, >, and & to their unicode representations. More info in
-  go/unicode-escaping-in-colab.
-
-  Args:
-    src: A serialized JSON string.
-
-  Returns:
-    A serialized JSON string with unicode escaped characters.
-  """
-
-  def _match_to_unicode(match: re.Match[str]) -> str:
-    char = match.group(0)
-    return f"\\u{hex(ord(char))[2:].zfill(4)}"
-
-  return re.sub(r"[<>&]", _match_to_unicode, src)
-
-
 def deepcopy_line(line: lines_mod.Line) -> lines_mod.Line:
   """Calculates a deep copy of a Line object.
 

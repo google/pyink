@@ -37,7 +37,7 @@
  
  COMPILED = Path(__file__).suffix in (".pyd", ".so")
  
-@@ -354,6 +361,61 @@ def validate_regex(
+@@ -354,6 +361,53 @@ def validate_regex(
      ),
  )
  @click.option(
@@ -67,14 +67,6 @@
 +    ),
 +)
 +@click.option(
-+    "--pyink-ipynb-unicode-escape",
-+    is_flag=True,
-+    help=(
-+        "Enable serialization of Jupyter notebook content into a JSON form"
-+        " where characters <, >, and & are unicode escaped."
-+    ),
-+)
-+@click.option(
 +    "--pyink-annotation-pragmas",
 +    type=str,
 +    multiple=True,
@@ -99,20 +91,19 @@
      "--check",
      is_flag=True,
      help=(
-@@ -554,6 +616,12 @@ def main(
+@@ -554,6 +608,11 @@ def main(
      preview: bool,
      unstable: bool,
      enable_unstable_feature: list[Preview],
 +    pyink: bool,
 +    pyink_indentation: str,
 +    pyink_ipynb_indentation: str,
-+    pyink_ipynb_unicode_escape: bool,
 +    pyink_annotation_pragmas: list[str],
 +    pyink_use_majority_quotes: bool,
      quiet: bool,
      verbose: bool,
      required_version: str | None,
-@@ -661,7 +729,16 @@ def main(
+@@ -661,7 +720,15 @@ def main(
          preview=preview,
          unstable=unstable,
          python_cell_magics=set(python_cell_magics),
@@ -120,7 +111,6 @@
 +        is_pyink=pyink,
 +        pyink_indentation=int(pyink_indentation),
 +        pyink_ipynb_indentation=int(pyink_ipynb_indentation),
-+        pyink_ipynb_unicode_escape=pyink_ipynb_unicode_escape,
 +        pyink_annotation_pragmas=(
 +            tuple(pyink_annotation_pragmas) or DEFAULT_ANNOTATION_PRAGMAS
 +        ),
@@ -130,7 +120,7 @@
      )
  
      if not fast and _target_versions_exceed_runtime(versions):
-@@ -1175,6 +1252,17 @@ def validate_metadata(nb: MutableMapping
+@@ -1175,6 +1242,17 @@ def validate_metadata(nb: MutableMapping
      if language is not None and language != "python":
          raise NothingChanged from None
  
@@ -148,7 +138,7 @@
  
  def format_ipynb_string(src_contents: str, *, fast: bool, mode: Mode) -> FileContent:
      """Format Jupyter notebook.
-@@ -1186,7 +1274,6 @@ def format_ipynb_string(src_contents: st
+@@ -1186,7 +1264,6 @@ def format_ipynb_string(src_contents: st
          raise NothingChanged
  
      trailing_newline = src_contents[-1] == "\n"
@@ -156,7 +146,7 @@
      nb = json.loads(src_contents)
      validate_metadata(nb)
      for cell in nb["cells"]:
-@@ -1198,14 +1285,17 @@ def format_ipynb_string(src_contents: st
+@@ -1198,14 +1275,15 @@ def format_ipynb_string(src_contents: st
                  pass
              else:
                  cell["source"] = dst.splitlines(keepends=True)
@@ -174,15 +164,13 @@
 +    dst_contents = json.dumps(
 +        nb, indent=mode.pyink_ipynb_indentation, ensure_ascii=False
 +    )
-+    if mode.pyink_ipynb_unicode_escape:
-+        dst_contents = ink.unicode_escape_json(dst_contents)
 +    if trailing_newline:
 +        dst_contents = dst_contents + "\n"
 +    return dst_contents
  
  
  def format_str(
-@@ -1275,6 +1365,8 @@ def _format_str_once(
+@@ -1275,6 +1353,8 @@ def _format_str_once(
          future_imports = get_future_imports(src_node)
          versions = detect_target_versions(src_node, future_imports=future_imports)
  
@@ -921,7 +909,7 @@
  
  
  @dataclass
-@@ -277,12 +301,21 @@ class Mode:
+@@ -277,12 +301,20 @@ class Mode:
      target_versions: set[TargetVersion] = field(default_factory=set)
      line_length: int = DEFAULT_LINE_LENGTH
      string_normalization: bool = True
@@ -938,12 +926,11 @@
 +    is_pyink: bool = False
 +    pyink_indentation: Literal[2, 4] = 4
 +    pyink_ipynb_indentation: Literal[1, 2] = 1
-+    pyink_ipynb_unicode_escape: bool = False
 +    pyink_annotation_pragmas: tuple[str, ...] = DEFAULT_ANNOTATION_PRAGMAS
      unstable: bool = False
      enabled_features: set[Preview] = field(default_factory=set)
  
-@@ -324,16 +357,32 @@ class Mode:
+@@ -324,16 +356,31 @@ class Mode:
              version_str,
              str(self.line_length),
              str(int(self.string_normalization)),
@@ -958,7 +945,6 @@
 +            str(int(self.is_pyink)),
 +            str(self.pyink_indentation),
 +            str(self.pyink_ipynb_indentation),
-+            str(int(self.pyink_ipynb_unicode_escape)),
 +            sha256(str(self.pyink_annotation_pragmas).encode()).hexdigest()[:8],
              features_and_magics,
          ]
@@ -1434,7 +1420,7 @@
      format_cell,
      format_file_contents,
      format_file_in_place,
-@@ -32,8 +33,15 @@ pytest.importorskip("IPython", reason="I
+@@ -32,8 +33,14 @@ pytest.importorskip("IPython", reason="I
  pytest.importorskip("tokenize_rt", reason="tokenize-rt is an optional dependency")
  
  JUPYTER_MODE = Mode(is_ipynb=True)
@@ -1442,7 +1428,6 @@
 +    is_ipynb=True,
 +    pyink_indentation=2,
 +    pyink_ipynb_indentation=2,
-+    pyink_ipynb_unicode_escape=True,
 +)
  
  EMPTY_CONFIG = DATA_DIR / "empty_pyproject.toml"
@@ -1450,7 +1435,7 @@
  
  runner = CliRunner()
  
-@@ -256,6 +264,13 @@ def test_cell_magic_with_custom_python_m
+@@ -256,6 +263,13 @@ def test_cell_magic_with_custom_python_m
          format_cell(src, fast=True, mode=JUPYTER_MODE)
  
  
@@ -1464,7 +1449,7 @@
  def test_cell_magic_nested() -> None:
      src = "%%time\n%%time\n2+2"
      result = format_cell(src, fast=True, mode=JUPYTER_MODE)
-@@ -429,6 +444,45 @@ def test_entire_notebook_no_trailing_new
+@@ -429,6 +443,45 @@ def test_entire_notebook_no_trailing_new
      assert result == expected
  
  
@@ -1490,8 +1475,8 @@
 +        '        "%%time\\n",\n'
 +        '        "\\n",\n'
 +        '        "a = 1\\n",\n'
-+        '        "if a \\u003c 1 or a \\u003e 1:\\n",\n'
-+        '        "    print(\\"\\u0026\\u003c\\u003e\\")"\n'
++        '        "if a < 1 or a > 1:\\n",\n'
++        '        "    print(\\"&<>\\")"\n'
 +        "      ]\n"
 +        "    }\n"
 +        "  ],\n"
@@ -1510,7 +1495,7 @@
  def test_entire_notebook_without_changes() -> None:
      content = read_jupyter_notebook("jupyter", "notebook_without_changes")
      with pytest.raises(NothingChanged):
-@@ -480,6 +534,29 @@ def test_ipynb_diff_with_no_change() ->
+@@ -480,6 +533,29 @@ def test_ipynb_diff_with_no_change() ->
      assert expected in result.output
  
  
