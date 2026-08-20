@@ -357,6 +357,18 @@ def convert_one_fmt_off_pair(
                 previous_consumed = comment.consumed
                 continue
 
+            # Avoid preprocessing `# fmt: skip` that fall outside the specified
+            # formatting line ranges. Converting a `# fmt: skip` located outside of
+            # line ranges into a `STANDALONE_COMMENT` would remove structure (like
+            # closing brackets) from the AST, which then breaks bracket tracking
+            # and spacing during unchanged line reconstruction.
+            if is_fmt_skip and lines:
+                comment_lineno = leaf.lineno - comment.newlines
+                if not any(start <= comment_lineno <= end for start, end in lines):
+                    if not ink_comments.is_skip_target_safe(leaf):
+                        previous_consumed = comment.consumed
+                        continue
+
             if not _is_valid_standalone_fmt_comment(
                 comment, leaf, is_fmt_off, is_fmt_skip
             ):
