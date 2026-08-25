@@ -6,6 +6,22 @@ All notable changes to Pyink are recorded here.
 
 * Nothing notable unreleased.
 
+## 26.5.1
+
+This release is based on _Black_ v26.5.1.
+
+* Disable Pyink's `UNPARENTHESIZED_EXCEPT_TYPES` formatting feature.
+* Remove `--pyink-ipynb-unicode-escape` support as none of the Google tools
+  unicode escapes characters anymore.
+* Allow `# fmt: skip` to be processed outside of formatting ranges if the target
+  node is a string.
+* Fix pragma comment movement in multiline expressions in Pyink.
+* Fix range formatting incorrectly adding/removing lines in cases:
+  - between an object's docstring and the next object,
+  - between an object's docstring and an attribute or a method definition,
+  - between an import and an object or a comment just above an object,
+  - an outer function and a function/class nested inside.
+
 ## 25.12.0
 
 This release is based on _Black_ v25.12.0.
@@ -14,7 +30,8 @@ This release is based on _Black_ v25.12.0.
 
 This release is based on _Black_ v24.10.0.
 
-* Add CLI option `--pyink-ipynb-unicode-escape` for unicode escaping characters in serialized .ipynb files.
+* Add CLI option `--pyink-ipynb-unicode-escape` for unicode escaping characters
+  in serialized .ipynb files.
 * Fix a dependency to the wrong Black version in pyproject.toml.
 
 ## 24.10.0
