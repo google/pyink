@@ -207,7 +207,7 @@
  # types
  LN = Union[Leaf, Node]
  
-@@ -354,6 +366,18 @@ def convert_one_fmt_off_pair(
+@@ -355,6 +357,18 @@ def convert_one_fmt_off_pair(
                  previous_consumed = comment.consumed
                  continue
  
@@ -504,7 +504,7 @@
          self.visit_del_stmt = partial(v, keywords=Ø, parens={"del"})
          self.visit_async_funcdef = self.visit_async_stmt
          self.visit_decorated = self.visit_decorators
-@@ -730,14 +774,23 @@ def transform_line(
+@@ -730,18 +774,31 @@ def transform_line(
  
      ll = mode.line_length
      sn = mode.string_normalization
@@ -529,11 +529,32 @@
      transformers: list[Transformer]
      if (
 -        not line.contains_uncollapsable_type_comments()
+-        and not line.should_split_rhs
+-        and not line.magic_trailing_comma
 +        not line.contains_uncollapsable_pragma_comments()
-         and not line.should_split_rhs
-         and not line.magic_trailing_comma
          and (
-@@ -963,7 +1016,6 @@ def _first_right_hand_split(
+-            is_line_short_enough(line, mode=mode, line_str=line_str_hugging_power_ops)
++            (
++                not line.should_split_rhs
++                and not line.magic_trailing_comma
++                and is_line_short_enough(
++                    line, mode=mode, line_str=line_str_hugging_power_ops
++                )
++            )
+             or line.contains_unsplittable_type_ignore()
+         )
+         and not (line.inside_brackets and line.contains_standalone_comments())
+@@ -932,6 +989,9 @@ def left_hand_split(
+     tail = bracket_split_build_line(
+         tail_leaves, line, matching_bracket, component=_BracketSplitComponent.tail
+     )
++    body, tail = _prevent_moving_pragma_to_new_line(
++        body, tail, body_leaves, tail_leaves, line, matching_bracket
++    )
+     bracket_split_succeeded_or_raise(head, body, tail)
+     for result in (head, body, tail):
+         if result:
+@@ -963,7 +1023,6 @@ def _first_right_hand_split(
      omit: Collection[LeafID] = (),
  ) -> RHSResult:
      """Split the line into head, body, tail starting with the last bracket pair.
@@ -541,7 +562,17 @@
      Note: this function should not have side effects. It's relied upon by
      _maybe_split_omitting_optional_parens to get an opinion whether to prefer
      splitting on the right side of an assignment statement.
-@@ -1285,7 +1337,7 @@ def bracket_split_build_line(
+@@ -1057,6 +1116,9 @@ def _first_right_hand_split(
+     tail = bracket_split_build_line(
+         tail_leaves, line, opening_bracket, component=_BracketSplitComponent.tail
+     )
++    body, tail = _prevent_moving_pragma_to_new_line(
++        body, tail, body_leaves, tail_leaves, line, opening_bracket
++    )
+     bracket_split_succeeded_or_raise(head, body, tail)
+     return RHSResult(head, body, tail, opening_bracket, closing_bracket)
+ 
+@@ -1285,7 +1347,7 @@ def bracket_split_build_line(
      result = Line(mode=original.mode, depth=original.depth)
      if component is _BracketSplitComponent.body:
          result.inside_brackets = True
@@ -550,7 +581,71 @@
          if _ensure_trailing_comma(leaves, original, opening_bracket):
              for i in range(len(leaves) - 1, -1, -1):
                  if leaves[i].type == STANDALONE_COMMENT:
-@@ -1834,7 +1886,11 @@ def maybe_make_parens_invisible_in_atom(
+@@ -1315,6 +1377,55 @@ def bracket_split_build_line(
+     return result
+ 
+ 
++def _prevent_moving_pragma_to_new_line(
++    body: Line,
++    tail: Line,
++    body_leaves: list[Leaf],
++    tail_leaves: list[Leaf],
++    line: Line,
++    opening_bracket: Leaf,
++) -> tuple[Line, Line]:
++    """Prevents moving pragma comments into a new line by merging tail with body.
++
++    When a pragma comment is on the tail of a bracketed expression that was
++    originally on the same line as the body, but the opening bracket was on an
++    earlier line, merging tail leaves into the body prevents the pragma comment
++    from being moved onto a newly created line.
++    """
++    tail_first_line = next(
++        (leaf.lineno for leaf in tail_leaves if leaf.lineno != 0), 0
++    )
++    body_last_line = next(
++        (leaf.lineno for leaf in reversed(body_leaves) if leaf.lineno != 0), 0
++    )
++    if (
++        tail.contains_pragma_comments()
++        and opening_bracket.lineno != 0
++        and tail_first_line != 0
++        and opening_bracket.lineno < tail_first_line
++        and body_last_line != 0
++        and tail_first_line == body_last_line
++    ):
++        result = Line(mode=line.mode, depth=line.depth)
++        result.inside_brackets = True
++        result.depth = result.depth + (Indentation.CONTINUATION,)
++        leaves = body_leaves + tail_leaves
++        leaves_to_track = get_leaves_inside_matching_brackets(leaves)
++        for leaf in leaves:
++            result.append(
++                leaf,
++                preformatted=True,
++                track_bracket=id(leaf) in leaves_to_track,
++            )
++            for comment_after in line.comments_after(leaf):
++                result.append(comment_after, preformatted=True)
++        if should_split_line(result, opening_bracket):
++            result.should_split_rhs = True
++        body = result
++        tail = Line(mode=line.mode, depth=line.depth)
++    return body, tail
++
++
+ def dont_increase_indentation(split_func: Transformer) -> Transformer:
+     """Normalize prefix of the first leaf in every line returned by `split_func`.
+ 
+@@ -1353,6 +1464,7 @@ def _safe_add_trailing_comma(safe: bool,
+         and delimiter_priority == COMMA_PRIORITY
+         and line.leaves[-1].type != token.COMMA
+         and line.leaves[-1].type != STANDALONE_COMMENT
++        and not line.contains_unsplittable_type_ignore()
+     ):
+         new_comma = Leaf(token.COMMA, ",")
+         line.append(new_comma)
+@@ -1834,7 +1946,11 @@ def maybe_make_parens_invisible_in_atom(
              # Remove parentheses around multiple exception types in except and
              # except* without as. See PEP 758 for details.
              and not (
@@ -563,7 +658,7 @@
                  # is a tuple
                  and is_tuple(node)
                  # has a parent node
-@@ -1879,9 +1935,10 @@ def maybe_make_parens_invisible_in_atom(
+@@ -1879,9 +1995,10 @@ def maybe_make_parens_invisible_in_atom(
          middle = node.children[1]
          # make parentheses invisible
          if (
@@ -576,7 +671,7 @@
          ):
              first.value = ""
              last.value = ""
-@@ -1955,7 +2012,7 @@ def generate_trailers_to_omit(line: Line
+@@ -1955,7 +2072,7 @@ def generate_trailers_to_omit(line: Line
      if not line.magic_trailing_comma:
          yield omit
  
@@ -585,7 +680,7 @@
      opening_bracket: Leaf | None = None
      closing_bracket: Leaf | None = None
      inner_brackets: set[LeafID] = set()
-@@ -2030,7 +2087,7 @@ def _over_length_only_due_to_subscript_c
+@@ -2030,7 +2147,7 @@ def _over_length_only_due_to_subscript_c
      if not line.leaves:
          return False
      # The over-length must be caused entirely by a trailing comment.
@@ -594,7 +689,7 @@
      leaves_iter = iter(line.leaves)
      first = next(leaves_iter)
      text_without_comments = f"{first.prefix}{indent}{first.value}"
-@@ -2071,7 +2128,7 @@ def run_transformer(
+@@ -2071,7 +2188,7 @@ def run_transformer(
          or not line.bracket_tracker.invisible
          or any(bracket.value for bracket in line.bracket_tracker.invisible)
          or line.contains_multiline_strings()
@@ -1738,3 +1833,17 @@
          yield Ok(last_line)
  
  
+--- a/tests/data/cases/funcdef_return_type_trailing_comma.py
++++ b/tests/data/cases/funcdef_return_type_trailing_comma.py
+@@ -251,10 +251,7 @@ def foo(
+     pass
+ 
+ 
+-def foo(
+-    a,
+-    b: list[Bad],
+-): ...  # type: ignore
++def foo(a, b: list[Bad],): ...  # type: ignore
+ 
+ 
+ # don't lose any comments (no magic)
