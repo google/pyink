@@ -791,10 +791,14 @@ def transform_line(
     transformers: list[Transformer]
     if (
         not line.contains_uncollapsable_pragma_comments()
-        and not line.should_split_rhs
-        and not line.magic_trailing_comma
         and (
-            is_line_short_enough(line, mode=mode, line_str=line_str_hugging_power_ops)
+            (
+                not line.should_split_rhs
+                and not line.magic_trailing_comma
+                and is_line_short_enough(
+                    line, mode=mode, line_str=line_str_hugging_power_ops
+                )
+            )
             or line.contains_unsplittable_type_ignore()
         )
         and not (line.inside_brackets and line.contains_standalone_comments())
@@ -985,6 +989,9 @@ def left_hand_split(
     tail = bracket_split_build_line(
         tail_leaves, line, matching_bracket, component=_BracketSplitComponent.tail
     )
+    body, tail = _prevent_moving_pragma_to_new_line(
+        body, tail, body_leaves, tail_leaves, line, matching_bracket
+    )
     bracket_split_succeeded_or_raise(head, body, tail)
     for result in (head, body, tail):
         if result:
@@ -1108,6 +1115,9 @@ def _first_right_hand_split(
         )
     tail = bracket_split_build_line(
         tail_leaves, line, opening_bracket, component=_BracketSplitComponent.tail
+    )
+    body, tail = _prevent_moving_pragma_to_new_line(
+        body, tail, body_leaves, tail_leaves, line, opening_bracket
     )
     bracket_split_succeeded_or_raise(head, body, tail)
     return RHSResult(head, body, tail, opening_bracket, closing_bracket)
@@ -1367,6 +1377,55 @@ def bracket_split_build_line(
     return result
 
 
+def _prevent_moving_pragma_to_new_line(
+    body: Line,
+    tail: Line,
+    body_leaves: list[Leaf],
+    tail_leaves: list[Leaf],
+    line: Line,
+    opening_bracket: Leaf,
+) -> tuple[Line, Line]:
+    """Prevents moving pragma comments into a new line by merging tail with body.
+
+    When a pragma comment is on the tail of a bracketed expression that was
+    originally on the same line as the body, but the opening bracket was on an
+    earlier line, merging tail leaves into the body prevents the pragma comment
+    from being moved onto a newly created line.
+    """
+    tail_first_line = next(
+        (leaf.lineno for leaf in tail_leaves if leaf.lineno != 0), 0
+    )
+    body_last_line = next(
+        (leaf.lineno for leaf in reversed(body_leaves) if leaf.lineno != 0), 0
+    )
+    if (
+        tail.contains_pragma_comments()
+        and opening_bracket.lineno != 0
+        and tail_first_line != 0
+        and opening_bracket.lineno < tail_first_line
+        and body_last_line != 0
+        and tail_first_line == body_last_line
+    ):
+        result = Line(mode=line.mode, depth=line.depth)
+        result.inside_brackets = True
+        result.depth = result.depth + (Indentation.CONTINUATION,)
+        leaves = body_leaves + tail_leaves
+        leaves_to_track = get_leaves_inside_matching_brackets(leaves)
+        for leaf in leaves:
+            result.append(
+                leaf,
+                preformatted=True,
+                track_bracket=id(leaf) in leaves_to_track,
+            )
+            for comment_after in line.comments_after(leaf):
+                result.append(comment_after, preformatted=True)
+        if should_split_line(result, opening_bracket):
+            result.should_split_rhs = True
+        body = result
+        tail = Line(mode=line.mode, depth=line.depth)
+    return body, tail
+
+
 def dont_increase_indentation(split_func: Transformer) -> Transformer:
     """Normalize prefix of the first leaf in every line returned by `split_func`.
 
@@ -1405,6 +1464,7 @@ def _safe_add_trailing_comma(safe: bool, delimiter_priority: int, line: Line) ->
         and delimiter_priority == COMMA_PRIORITY
         and line.leaves[-1].type != token.COMMA
         and line.leaves[-1].type != STANDALONE_COMMENT
+        and not line.contains_unsplittable_type_ignore()
     ):
         new_comma = Leaf(token.COMMA, ",")
         line.append(new_comma)
