@@ -4,7 +4,6 @@ The double calls are for patching purposes in tests.
 """
 
 import json
-import os
 import re
 import tempfile
 from typing import Any
@@ -18,7 +17,7 @@ def _out(message: str | None = None, nl: bool = True, **styles: Any) -> None:
     if message is not None:
         if "bold" not in styles:
             styles["bold"] = True
-        message = style_output(message, **styles)
+        message = style(message, **styles)
     echo(message, nl=nl, err=True)
 
 
@@ -27,7 +26,7 @@ def _err(message: str | None = None, nl: bool = True, **styles: Any) -> None:
     if message is not None:
         if "fg" not in styles:
             styles["fg"] = "red"
-        message = style_output(message, **styles)
+        message = style(message, **styles)
     echo(message, nl=nl, err=True)
 
 
@@ -96,8 +95,6 @@ def diff(a: str, b: str, a_name: str, b_name: str) -> str:
 
 def color_diff(contents: str) -> str:
     """Inject the ANSI color codes to the diff."""
-    if not _color_enabled():
-        return contents
     lines = contents.split("\n")
     for i, line in enumerate(lines):
         if line.startswith("+++") or line.startswith("---"):
@@ -110,16 +107,6 @@ def color_diff(contents: str) -> str:
             line = "\033[31m" + line + "\033[0m"  # red, reset
         lines[i] = line
     return "\n".join(lines)
-
-
-def style_output(message: str, **styles: Any) -> str:
-    if not _color_enabled():
-        return message
-    return style(message, **styles)
-
-
-def _color_enabled() -> bool:
-    return "NO_COLOR" not in os.environ
 
 
 @mypyc_attr(patchable=True)

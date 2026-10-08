@@ -145,11 +145,6 @@ def test_cell_magic_noop() -> None:
         pytest.param(
             "env =  %env var", "env = %env var", id="Assignment to environment variable"
         ),
-        pytest.param(
-            "变量 =  %env var",
-            "变量 = %env var",
-            id="Assignment after non-ASCII characters",
-        ),
         pytest.param("env =  %env", "env = %env", id="Assignment to magic"),
     ),
 )

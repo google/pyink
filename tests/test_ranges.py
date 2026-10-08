@@ -2,35 +2,7 @@
 
 import pytest
 
-from pyink.ranges import adjusted_lines, parse_line_ranges, sanitized_lines
-
-
-@pytest.mark.parametrize(
-    "lines_str, expected",
-    [
-        (["1-5"], [(1, 5)]),
-        (["1-1"], [(1, 1)]),
-        (["1-3", "5-7"], [(1, 3), (5, 7)]),
-    ],
-)
-def test_parse_line_ranges_valid(
-    lines_str: list[str], expected: list[tuple[int, int]]
-) -> None:
-    assert parse_line_ranges(lines_str) == expected
-
-
-@pytest.mark.parametrize(
-    "lines_str",
-    [
-        ["5-3"],
-        ["0-5"],
-        ["-1-5"],
-        ["5-0"],
-    ],
-)
-def test_parse_line_ranges_invalid(lines_str: list[str]) -> None:
-    with pytest.raises(ValueError, match="Incorrect --line-ranges"):
-        parse_line_ranges(lines_str)
+from pyink.ranges import adjusted_lines, sanitized_lines
 
 
 @pytest.mark.parametrize(

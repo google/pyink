@@ -144,13 +144,6 @@ square = Square(4) # type: Optional[Square]
     ),
 ]
 
-# Regression test for https://github.com/psf/black/issues/5328.
-my_dict = {
-    "key": (
-        "A very very very very very very very very very very very very very very very very long string literal"
-    )  # type: ignore
-}
-
 # output
 
 from .config import (
@@ -313,11 +306,3 @@ square = Square(4)  # type: Optional[Square]
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"  # aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     ),
 ]
-
-# Regression test for https://github.com/psf/black/issues/5328.
-my_dict = {
-    "key": (
-        "A very very very very very very very very very very very very very very very"
-        " very long string literal"
-    )  # type: ignore
-}

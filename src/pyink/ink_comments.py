@@ -32,9 +32,6 @@ def comment_contains_pragma(comment: str, mode: mode_mod.Mode) -> bool:
   return pragma_regex.search(comment) is not None
 
 
-# GOOGLE(b/516964089): Used by comments.py to check whether # fmt: skip outside
-# --pyink-lines is safe to convert (cl/967895425; see also
-# https://github.com/psf/black/pull/5477).
 def is_skip_target_safe(leaf: pytree.Leaf) -> bool:
   """Returns True if the node ignored by `# fmt: skip` is safe to hide."""
   prev_sibling = leaf.prev_sibling

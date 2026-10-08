@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import ast
 import asyncio
 import inspect
 import io
@@ -8,7 +7,6 @@ import itertools
 import logging
 import multiprocessing
 import os
-import pickle
 import re
 import sys
 import textwrap
@@ -135,88 +133,6 @@ def invokeBlack(
     assert result.exit_code == exit_code, msg
 
 
-def docstring_value(source: str) -> str:
-    # Not ast.get_docstring(): its default clean=True runs inspect.cleandoc,
-    # which trims exactly the whitespace these tests are about.
-    node = ast.parse(source).body[0]
-    assert isinstance(node, ast.FunctionDef)
-    expr = node.body[0]
-    assert isinstance(expr, ast.Expr)
-    assert isinstance(expr.value, ast.Constant)
-    return str(expr.value.value)
-
-
-def test_fmt_off_reindent_reports_black_not_the_user(tmp_path: Path) -> None:
-    """Black must own the error when its own output fails to parse.
-
-    Reindenting to 4 spaces stops at a ``# fmt: off`` region, so the result can
-    mix indent widths and fail the forced second pass. That parse failure is
-    Black's, but it used to surface as ``cannot parse: <user file>:<line>``,
-    which is exactly what a genuine syntax error in the user's source looks
-    like.
-    """
-    source = tmp_path / "reindent.py"
-    source.write_text(
-        'if __name__ == "__main__":\n'
-        "  foo = 3\n"
-        "  # fmt: off\n"
-        "  bar = 1\n"
-        "  baz  =  2\n"
-        "  # fmt: on\n"
-        "  qux = 4\n",
-        encoding="utf8",
-    )
-    # the file itself is valid Python; only Black's own output is not
-    ast.parse(source.read_text(encoding="utf8"))
-
-    result = BlackRunner().invoke(
-        pyink.main, ["--config", str(THIS_DIR / "empty.toml"), str(source)]
-    )
-
-    assert result.exit_code == 123
-    # the internal error must come first, so the parse location that follows is
-    # read as part of it rather than as a syntax error in the user's file
-    assert result.stderr.startswith("error: INTERNAL ERROR:")
-    assert "produced invalid code" in result.stderr
-    assert "https://github.com/psf/black/issues" in result.stderr
-    # the parse location is kept, it points into Black's output
-    assert f"cannot parse: {source}:" in result.stderr
-
-
-def test_invalid_input_error_includes_path_location(tmp_path: Path) -> None:
-    source = tmp_path / "invalid.py"
-    source.write_text("return if you can\n", encoding="utf8")
-
-    result = BlackRunner().invoke(
-        pyink.main, ["--config", str(THIS_DIR / "empty.toml"), str(source)]
-    )
-
-    assert result.exit_code == 123
-    assert (
-        f"error: cannot parse: {source}:1:7\n"
-        "    return if you can\n"
-        "          ^\n"
-        "ParseError: bad input\n"
-        in result.stderr
-    )
-
-    second_source = tmp_path / "also_invalid.py"
-    second_source.write_text("print(\n", encoding="utf8")
-    result = BlackRunner().invoke(
-        pyink.main,
-        [
-            "--config",
-            str(THIS_DIR / "empty.toml"),
-            str(source),
-            str(second_source),
-        ],
-    )
-
-    assert result.exit_code == 123
-    assert f"error: cannot parse: {source}:1:7\n" in result.stderr
-    assert f"error: cannot parse: {second_source}:1:6\n" in result.stderr
-
-
 class BlackTestCase(BlackBaseTestCase):
     invokeBlack = staticmethod(invokeBlack)
 
@@ -316,23 +232,6 @@ class BlackTestCase(BlackBaseTestCase):
         self.assertIn("\033[32m", actual)
         self.assertIn("\033[31m", actual)
         self.assertIn("\033[0m", actual)
-
-    def test_piping_diff_with_color_respects_no_color(self) -> None:
-        source, _ = read_data("cases", "expression.py")
-        args = [
-            "-",
-            "--fast",
-            f"--line-length={pyink.DEFAULT_LINE_LENGTH}",
-            "--diff",
-            "--color",
-            f"--config={EMPTY_CONFIG}",
-        ]
-        with patch.dict(os.environ, {"NO_COLOR": "1"}):
-            result = BlackRunner().invoke(
-                pyink.main, args, input=BytesIO(source.encode("utf-8"))
-            )
-        actual = result.output
-        self.assertNotIn("\033[", actual)
 
     def test_pep_572_version_detection(self) -> None:
         source, _ = read_data("cases", "pep_572")
@@ -499,24 +398,6 @@ class BlackTestCase(BlackBaseTestCase):
             ff(test_file, mode=mode, write_back=pyink.WriteBack.YES)
             self.assertEqual(test_file.read_bytes(), expected)
 
-    def test_skip_source_first_line_with_crlf_newlines(self) -> None:
-        code = b"Header will be skipped\r\ni = [1,2,3]\r\nj = [1,2,3]\r\n"
-        expected = b"Header will be skipped\r\ni = [1, 2, 3]\r\nj = [1, 2, 3]\r\n"
-        mode = replace(DEFAULT_MODE, skip_source_first_line=True)
-        with TemporaryDirectory() as workspace:
-            test_file = Path(workspace) / "skip_header.py"
-            test_file.write_bytes(code)
-            ff(test_file, mode=mode, write_back=pyink.WriteBack.YES)
-            self.assertEqual(test_file.read_bytes(), expected)
-
-            test_file.write_bytes(code)
-            output = io.StringIO(newline="")
-            with patch("sys.stdout", output):
-                ff(test_file, mode=mode, write_back=pyink.WriteBack.DIFF)
-            actual = output.getvalue()
-            self.assertIn(" Header will be skipped\r\n-i = [1,2,3]\r\n", actual)
-            self.assertNotIn("\r\r\n", actual)
-
     def test_skip_magic_trailing_comma(self) -> None:
         source, _ = read_data("cases", "expression")
         expected, _ = read_data(
@@ -652,7 +533,7 @@ class BlackTestCase(BlackBaseTestCase):
             report.check = True
             self.assertEqual(report.return_code, 1)
             report.check = False
-            report.failed(Path("e1"), Exception("boom"))
+            report.failed(Path("e1"), "boom")
             self.assertEqual(len(out_lines), 3)
             self.assertEqual(len(err_lines), 1)
             self.assertEqual(err_lines[-1], "error: cannot format e1: boom")
@@ -672,7 +553,7 @@ class BlackTestCase(BlackBaseTestCase):
                 " reformat.",
             )
             self.assertEqual(report.return_code, 123)
-            report.failed(Path("e2"), Exception("boom"))
+            report.failed(Path("e2"), "boom")
             self.assertEqual(len(out_lines), 4)
             self.assertEqual(len(err_lines), 2)
             self.assertEqual(err_lines[-1], "error: cannot format e2: boom")
@@ -749,7 +630,7 @@ class BlackTestCase(BlackBaseTestCase):
             report.check = True
             self.assertEqual(report.return_code, 1)
             report.check = False
-            report.failed(Path("e1"), Exception("boom"))
+            report.failed(Path("e1"), "boom")
             self.assertEqual(len(out_lines), 0)
             self.assertEqual(len(err_lines), 1)
             self.assertEqual(err_lines[-1], "error: cannot format e1: boom")
@@ -768,7 +649,7 @@ class BlackTestCase(BlackBaseTestCase):
                 " reformat.",
             )
             self.assertEqual(report.return_code, 123)
-            report.failed(Path("e2"), Exception("boom"))
+            report.failed(Path("e2"), "boom")
             self.assertEqual(len(out_lines), 0)
             self.assertEqual(len(err_lines), 2)
             self.assertEqual(err_lines[-1], "error: cannot format e2: boom")
@@ -809,50 +690,6 @@ class BlackTestCase(BlackBaseTestCase):
                 "2 files would be reformatted, 3 files would be left unchanged, 2"
                 " files would fail to reformat.",
             )
-
-    def test_report_write_github_outputs(self) -> None:
-        with TemporaryDirectory() as workspace:
-            output_file = Path(workspace) / "github_output"
-            report = Report()
-            report.done(Path("f1"), pyink.Changed.NO)
-            report.write_github_outputs(output_file)
-            content = output_file.read_text(encoding="utf-8")
-            self.assertIn("is_formatted=false\n", content)
-            self.assertIn("change_count=0\n", content)
-            self.assertIn("same_count=1\n", content)
-            self.assertIn("failure_count=0\n", content)
-
-            output_file.unlink()
-            report_quiet = Report(quiet=True)
-            report_quiet.done(Path("f2"), pyink.Changed.YES)
-            report_quiet.write_github_outputs(output_file)
-            content_quiet = output_file.read_text(encoding="utf-8")
-            self.assertIn("is_formatted=true\n", content_quiet)
-            self.assertIn("change_count=1\n", content_quiet)
-
-    def test_github_output_in_cli(self) -> None:
-        with TemporaryDirectory() as workspace:
-            output_file = Path(workspace) / "github_output"
-            src = Path(workspace) / "test.py"
-            src.write_text("x = 1\n", encoding="utf-8")
-            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output_file)}):
-                self.invokeBlack([str(src)])
-            content = output_file.read_text(encoding="utf-8")
-            self.assertIn("is_formatted=false\n", content)
-
-            output_file.unlink()
-            src.write_text("x =   1\n", encoding="utf-8")
-            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output_file)}):
-                self.invokeBlack([str(src), "--quiet"])
-            content = output_file.read_text(encoding="utf-8")
-            self.assertIn("is_formatted=true\n", content)
-
-            output_file.unlink()
-            src.write_text("x =   1\n", encoding="utf-8")
-            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output_file)}):
-                self.invokeBlack([str(src), "--check"], exit_code=1)
-            content = output_file.read_text(encoding="utf-8")
-            self.assertIn("is_formatted=true\n", content)
 
     def test_report_normal(self) -> None:
         report = pyink.Report()
@@ -889,7 +726,7 @@ class BlackTestCase(BlackBaseTestCase):
             report.check = True
             self.assertEqual(report.return_code, 1)
             report.check = False
-            report.failed(Path("e1"), Exception("boom"))
+            report.failed(Path("e1"), "boom")
             self.assertEqual(len(out_lines), 1)
             self.assertEqual(len(err_lines), 1)
             self.assertEqual(err_lines[-1], "error: cannot format e1: boom")
@@ -909,7 +746,7 @@ class BlackTestCase(BlackBaseTestCase):
                 " reformat.",
             )
             self.assertEqual(report.return_code, 123)
-            report.failed(Path("e2"), Exception("boom"))
+            report.failed(Path("e2"), "boom")
             self.assertEqual(len(out_lines), 2)
             self.assertEqual(len(err_lines), 2)
             self.assertEqual(err_lines[-1], "error: cannot format e2: boom")
@@ -951,24 +788,9 @@ class BlackTestCase(BlackBaseTestCase):
                 " files would fail to reformat.",
             )
 
-    def test_report_respects_no_color(self) -> None:
-        report = Report()
-        report.done(Path("f1"), pyink.Changed.YES)
-        with patch.dict(os.environ, {"NO_COLOR": "1"}):
-            output = str(report)
-        self.assertEqual(output, unstyle(output))
-
     def test_lib2to3_parse(self) -> None:
-        with self.assertRaises(pyink.InvalidInput) as exc_info:
+        with self.assertRaises(pyink.InvalidInput):
             pyink.lib2to3_parse("invalid syntax")
-        error = exc_info.exception
-        restored_error = pickle.loads(pickle.dumps(error))
-        self.assertEqual((error.lineno, error.column), (1, 8))
-        self.assertEqual(str(restored_error), str(error))
-        self.assertEqual(
-            (error.lineno, error.column),
-            (restored_error.lineno, restored_error.column),
-        )
 
         straddling = "x + y"
         pyink.lib2to3_parse(straddling)
@@ -1198,7 +1020,7 @@ class BlackTestCase(BlackBaseTestCase):
             pyink.format_file_contents(invalid, mode=mode, fast=False)
         self.assertEqual(
             str(e.exception),
-            "cannot parse: 1:7\n"
+            "Cannot parse: 1:7\n"
             "    return if you can\n"
             "          ^\n"
             "ParseError: bad input",
@@ -1274,26 +1096,6 @@ class BlackTestCase(BlackBaseTestCase):
             ]:
                 f.write_text('print("hello")\n', encoding="utf-8")
             self.invokeBlack([str(workspace)])
-
-    @event_loop()
-    def test_invalid_black_num_workers(self) -> None:
-        for workers in ["abc", "0", "-1"]:
-            with (
-                cache_dir() as workspace,
-                patch.dict(os.environ, {"PYINK_NUM_WORKERS": workers}),
-            ):
-                for f in [
-                    (workspace / "one.py").resolve(),
-                    (workspace / "two.py").resolve(),
-                ]:
-                    f.write_text('print("hello")\n', encoding="utf-8")
-
-                result = BlackRunner().invoke(pyink.main, [str(workspace)])
-
-            assert result.exit_code == 2
-            assert result.exception is not None
-            assert "PYINK_NUM_WORKERS" in result.stderr
-            assert "Traceback" not in result.stderr
 
     @event_loop()
     def test_check_diff_use_together(self) -> None:
@@ -1580,76 +1382,7 @@ class BlackTestCase(BlackBaseTestCase):
                     )
                 except io.UnsupportedOperation:
                     pass  # StringIO does not support detach
-                assert (
-                    output.getvalue() == expected
-                ), f"incorrect formatting of {repr(content)}"
-
-    def test_format_stdin_to_stdout_without_buffer(self) -> None:
-        # Text streams aren't required to expose `.buffer` (e.g. ipykernel's
-        # OutStream in Jupyter), see #2516.
-        src = "print ( 'hello' )"
-        for write_back, expected in (
-            (pyink.WriteBack.YES, 'print("hello")\n'),
-            (pyink.WriteBack.CHECK, ""),
-            (pyink.WriteBack.NO, ""),
-        ):
-            output = io.StringIO()
-            assert not hasattr(output, "buffer")
-            with patch("sys.stdout", output):
-                changed = pyink.format_stdin_to_stdout(
-                    fast=True, content=src, write_back=write_back, mode=DEFAULT_MODE
-                )
-            self.assertTrue(changed)
-            self.assertEqual(output.getvalue(), expected)
-            self.assertFalse(output.closed)
-
-        for write_back in (pyink.WriteBack.DIFF, pyink.WriteBack.COLOR_DIFF):
-            output = io.StringIO()
-            with patch("sys.stdout", output):
-                pyink.format_stdin_to_stdout(
-                    fast=True, content=src, write_back=write_back, mode=DEFAULT_MODE
-                )
-            actual = unstyle(output.getvalue())
-            self.assertIn("-print ( 'hello' )\n", actual)
-            self.assertIn('+print("hello")\n', actual)
-            self.assertFalse(output.closed)
-
-    def test_reformat_code_without_stdout_buffer(self) -> None:
-        output = io.StringIO()
-        report = MagicMock()
-        with patch("sys.stdout", output):
-            pyink.reformat_code(
-                "x = ( 1 )",
-                fast=True,
-                write_back=pyink.WriteBack.YES,
-                mode=DEFAULT_MODE,
-                report=report,
-            )
-        self.assertEqual(output.getvalue(), "x = 1\n")
-        report.failed.assert_not_called()
-
-    def test_format_file_in_place_diff_without_stdout_buffer(self) -> None:
-        for nl in ("\n", "\r\n"):
-            with TemporaryDirectory() as workspace:
-                test_file = Path(workspace) / "test.py"
-                test_file.write_bytes(f"x = ( 1 ){nl}".encode())
-                output = io.StringIO(newline="")
-                with patch("sys.stdout", output):
-                    changed = pyink.format_file_in_place(
-                        test_file,
-                        fast=True,
-                        mode=DEFAULT_MODE,
-                        write_back=pyink.WriteBack.DIFF,
-                    )
-                self.assertTrue(changed)
-                actual = output.getvalue()
-                self.assertIn(f"-x = ( 1 ){nl}", actual)
-                self.assertIn(f"+x = 1{nl}", actual)
-                if nl == "\n":
-                    self.assertNotIn("\r\n", actual)
-                self.assertFalse(output.closed)
-                # The file itself is left untouched.
-                self.assertEqual(test_file.read_bytes(), f"x = ( 1 ){nl}".encode())
+                assert output.getvalue() == expected
 
     def test_cli_unstable(self) -> None:
         self.invokeBlack(["--unstable", "-c", "0"], exit_code=0)
@@ -1916,43 +1649,6 @@ class BlackTestCase(BlackBaseTestCase):
         self.assertEqual(config["exclude"], r"\.pyi?$")
         self.assertEqual(config["include"], r"\.py?$")
 
-    def test_read_pyproject_toml_rejects_non_string_regex_configs(self) -> None:
-        for config_key, option_name in [
-            ("include", "include"),
-            ("force-exclude", "force-exclude"),
-        ]:
-            with self.subTest(config_key=config_key):
-                with TemporaryDirectory() as workspace:
-                    config = Path(workspace) / "pyproject.toml"
-                    config.write_text(
-                        f'[tool.pyink]\n{config_key} = ["not", "a", "regex"]\n',
-                        encoding="utf-8",
-                    )
-
-                    fake_ctx = FakeContext()
-                    with pytest.raises(click.BadOptionUsage) as exc_info:
-                        pyink.read_pyproject_toml(fake_ctx, None, str(config))
-
-                    assert exc_info.value.option_name == option_name
-                    assert "must be a string" in exc_info.value.message
-
-    def test_cli_rejects_non_string_pyproject_regex_configs(self) -> None:
-        for config_key in ["include", "force-exclude"]:
-            with self.subTest(config_key=config_key):
-                with TemporaryDirectory() as workspace:
-                    config = Path(workspace) / "pyproject.toml"
-                    config.write_text(
-                        f'[tool.pyink]\n{config_key} = ["not", "a", "regex"]\n',
-                        encoding="utf-8",
-                    )
-
-                    result = BlackRunner().invoke(
-                        pyink.main, ["--config", str(config), "--code", "print(1)"]
-                    )
-
-                    assert result.exit_code == 2
-                    assert f"Config key {config_key} must be a string" in result.stderr
-
     def test_read_pyproject_toml_from_stdin(self) -> None:
         with TemporaryDirectory() as workspace:
             root = Path(workspace)
@@ -2035,98 +1731,6 @@ class BlackTestCase(BlackBaseTestCase):
                 pyink.find_project_root((src_sub_python,)),
                 (src_dir.resolve(), "pyproject.toml"),
             )
-
-    @pytest.mark.incompatible_with_mypyc
-    def test_find_project_root_no_common_parent(self) -> None:
-        # Absolute vs relative paths share no parents on any platform. That is
-        # the same empty-intersection situation as C:\... and D:\... on Windows.
-        cases: list[tuple[str, ...]] = [("/work/app/a.py", "tmp/b.py")]
-        if sys.platform == "win32":
-            cases.append((r"C:\work\app\a.py", r"D:\tmp\b.py"))
-
-        for srcs in cases:
-            parents = [set(Path(src).parents) for src in srcs]
-            self.assertFalse(set.intersection(*parents))
-            with self.subTest(srcs=srcs):
-                self.assertEqual(
-                    pyink.files._find_project_root_cached(srcs), (None, None)
-                )
-
-        if sys.platform == "win32":
-            self.assertEqual(
-                pyink.find_project_root((r"C:\work\app\a.py", r"D:\tmp\b.py")),
-                (None, None),
-            )
-
-    @pytest.mark.incompatible_with_mypyc
-    @patch("pyink.files.find_user_pyproject_toml")
-    def test_find_pyproject_toml_no_common_parent(
-        self, find_user_pyproject_toml: MagicMock
-    ) -> None:
-        if system() != "Windows":
-            return
-
-        with TemporaryDirectory() as workspace:
-            user_config = Path(workspace) / "user-pyproject.toml"
-            user_config.write_text("[tool.pyink]", encoding="utf-8")
-            find_user_pyproject_toml.return_value = user_config
-
-            # Sources on different drives share no project root, so the
-            # project-level config is skipped and the user-level config
-            # applies, same as when the project root has no pyproject.toml.
-            result = pyink.files.find_pyproject_toml(
-                (r"C:\work\app\a.py", r"D:\tmp\b.py")
-            )
-            self.assertEqual(result, str(user_config))
-
-    @pytest.mark.incompatible_with_mypyc
-    @patch("pyink.files.find_user_pyproject_toml")
-    @patch("pyink.files.find_project_root")
-    @patch("pyink.find_project_root")
-    def test_no_common_parent_warns_and_formats(
-        self,
-        find_project_root: MagicMock,
-        files_find_project_root: MagicMock,
-        find_user_pyproject_toml: MagicMock,
-    ) -> None:
-        find_project_root.return_value = (None, None)
-        files_find_project_root.return_value = (None, None)
-        find_user_pyproject_toml.return_value = Path("does-not-exist")
-
-        runner = BlackRunner()
-        with TemporaryDirectory() as workspace:
-            root = Path(workspace)
-            project1 = root / "project1"
-            project2 = root / "project2"
-            project1.mkdir()
-            project2.mkdir()
-            (project1 / "a.py").write_text("x=1\n", encoding="utf-8")
-            (project2 / "b.py").write_text("y=2\n", encoding="utf-8")
-
-            def invoke(args: list[str]) -> tuple[int, str]:
-                for path in (project1 / "a.py", project2 / "b.py"):
-                    path.write_text("x=1\n", encoding="utf-8")
-                result = runner.invoke(
-                    pyink.main,
-                    [str(project1), str(project2), *args],
-                    catch_exceptions=False,
-                )
-                return result.exit_code, result.output
-
-            exit_code, output = invoke([])
-            assert exit_code == 0, output
-            assert "No project root could be identified" in output
-            assert "reformatted" in output
-            assert "a.py" in output and "b.py" in output
-
-            exit_code, output = invoke(["--quiet"])
-            assert exit_code == 0, output
-            assert "No project root could be identified" not in output
-
-            exit_code, output = invoke(["--config", str(THIS_DIR / "empty.toml")])
-            assert exit_code == 0, output
-            assert "No project root could be identified" not in output
-            assert "reformatted" in output
 
     @patch(
         "pyink.files.find_user_pyproject_toml",
@@ -2381,7 +1985,7 @@ class BlackTestCase(BlackBaseTestCase):
 
         exc_info.match(
             re.escape(
-                "cannot parse: 1:6\n"
+                "Cannot parse: 1:6\n"
                 "    print(\n"
                 "         ^\n"
                 "TokenError: Unexpected EOF in multi-line statement"
@@ -2439,33 +2043,6 @@ class BlackTestCase(BlackBaseTestCase):
             """)
             assert expected == formatted
 
-    def test_line_ranges_preserves_unselected_prefix_trailing_whitespace(self) -> None:
-        # This regression stays inline because it requires literal trailing spaces,
-        # which would fail `git diff --check` in a data case file.
-        source = (
-            "   #  format whitespace   \n"
-            'print( "format me" )   \n'
-            "      \n"
-            "\n"
-            "   #  don't format whitespace   \n"
-            'print("don\'t format me"  )     \n'
-            "      \n"
-        )
-
-        expected = (
-            "#  format whitespace\n"
-            'print("format me")\n'
-            "\n"
-            "\n"
-            "   #  don't format whitespace   \n"
-            'print("don\'t format me"  )     \n'
-            "      \n"
-        )
-
-        assert (
-            pyink.format_str(source, mode=pyink.FileMode(), lines=[(1, 3)]) == expected
-        )
-
     def test_line_ranges_with_multiple_sources(self) -> None:
         with TemporaryDirectory() as workspace:
             test1_file = Path(workspace) / "test1.py"
@@ -2511,7 +2088,7 @@ class BlackTestCase(BlackBaseTestCase):
         payload = "\t" * 10_000
         assert lines_with_leading_tabs_expanded(payload) == [payload]
 
-        tab = " " * 4
+        tab = " " * 8
         assert lines_with_leading_tabs_expanded("\tx") == [f"{tab}x"]
         assert lines_with_leading_tabs_expanded("\t\tx") == [f"{tab}{tab}x"]
         assert lines_with_leading_tabs_expanded("\tx\n  y") == [f"{tab}x", "  y"]
@@ -2545,41 +2122,6 @@ class BlackTestCase(BlackBaseTestCase):
             pyink.format_str("class A\\\r:...", mode=pyink.FileMode())
             == "class A: ...\r"
         )
-
-    def test_docstring_with_non_newline_line_break(self) -> None:
-        # These tests are here instead of in the normal cases because a form feed
-        # and the Unicode separators are invisible in a diff.
-        #
-        # Only \n, \r and \r\n end a line for the Python parser, so the other
-        # characters str.splitlines() breaks on are ordinary characters of a
-        # docstring's value. Reformatting must not turn one of them into a
-        # newline, which would change the value of the docstring.
-        for line_break in ("\x0c", "\x0b", "\x85", "\u2028", "\u2029"):
-            for source in (
-                f'def f():\n    """a{line_break}b\n    c"""\n',
-                f'def f():\n    """a\n    b{line_break}c"""\n',
-            ):
-                formatted = pyink.format_str(source, mode=pyink.FileMode())
-                # Black's own AST check normalizes docstring whitespace away, so
-                # the docstring's value has to be compared directly here.
-                before = docstring_value(source)
-                after = docstring_value(formatted)
-                assert before == after, f"{line_break!r}: {source!r} -> {formatted!r}"
-                assert pyink.format_str(formatted, mode=pyink.FileMode()) == formatted
-
-    def test_docstring_still_splits_on_real_line_breaks(self) -> None:
-        # The counterpart to the test above: CR and CRLF *are* line breaks for
-        # the Python parser, so they must keep being treated as line endings.
-        # Without this, narrowing the split to LF alone passes the whole suite.
-        quotes = chr(34) * 3
-        for newline in ("\n", "\r\n", "\r"):
-            docstring = quotes + "a" + newline + "    b" + quotes
-            source = "def f():" + newline + "    " + docstring + newline
-            formatted = pyink.format_str(source, mode=pyink.FileMode())
-            value = docstring_value(formatted)
-            # Two docstring lines, not one: the break survived the round trip.
-            assert value.count("\n") == 1, f"{newline!r}: {value!r}"
-            assert formatted == pyink.format_str(formatted, mode=pyink.FileMode())
 
     def test_newline_type_detection(self) -> None:
         mode = Mode()
@@ -2687,13 +2229,6 @@ class TestCaching:
             invokeBlack([str(src)])
             cache = pyink.Cache.read(mode)
             assert not cache.is_changed(src)
-
-    def test_cache_empty_file(self) -> None:
-        mode = DEFAULT_MODE
-        with cache_dir():
-            cache_file = get_cache_file(mode)
-            cache_file.touch()
-            assert pyink.Cache.read(mode).file_data == {}
 
     def test_cache_single_file_already_cached(self) -> None:
         mode = DEFAULT_MODE
@@ -2987,20 +2522,6 @@ class TestCaching:
             modes = [replace(DEFAULT_MODE, **{field.name: value}) for value in values]
             keys = [mode.get_cache_key() for mode in modes]
             assert len(set(keys)) == len(modes)
-
-
-def symlink_or_skip(link: Path, target: Path | str) -> None:
-    """Create a symlink, or skip the test where the platform forbids one.
-
-    Windows refuses symlink creation unless the process is elevated or
-    Developer Mode is enabled, so these tests cannot run for an ordinary
-    Windows contributor. Same treatment as test_broken_symlink, which has
-    guarded this since GH #287.
-    """
-    try:
-        link.symlink_to(target)
-    except (OSError, NotImplementedError) as e:
-        pytest.skip(f"Can't create symlinks: {e}")
 
 
 def assert_collected_sources(
@@ -3398,7 +2919,7 @@ class TestFileCollection:
             actual = tmp / "actual"
             actual.mkdir()
             symlink = tmp / "symlink"
-            symlink_or_skip(symlink, actual)
+            symlink.symlink_to(actual)
 
             actual_proj = actual / "project"
             actual_proj.mkdir()
@@ -3422,7 +2943,7 @@ class TestFileCollection:
 
                 # a few tricky tests for force_exclude
                 flat_symlink = symlink_proj / "symlink_module.py"
-                symlink_or_skip(flat_symlink, actual_proj / "module.py")
+                flat_symlink.symlink_to(actual_proj / "module.py")
                 assert_collected_sources(
                     src=[flat_symlink],
                     root=symlink_proj.resolve(),
@@ -3433,7 +2954,7 @@ class TestFileCollection:
                 target = actual_proj / "target"
                 target.mkdir()
                 (target / "another.py").write_text("print('hello')", encoding="utf-8")
-                symlink_or_skip(symlink_proj / "nested", target)
+                (symlink_proj / "nested").symlink_to(target)
 
                 assert_collected_sources(
                     src=[symlink_proj / "nested" / "another.py"],
@@ -3446,65 +2967,6 @@ class TestFileCollection:
                     root=symlink_proj.resolve(),
                     force_exclude=r"target",
                     expected=[symlink_proj / "nested" / "another.py"],
-                )
-
-    def test_get_sources_force_exclude_with_parent_dir_path(self) -> None:
-        with TemporaryDirectory() as tempdir:
-            root = Path(tempdir).resolve()
-            (root / "pyproject.toml").write_text("[tool.pyink]", encoding="utf-8")
-            (root / "src").mkdir()
-            (root / "generated").mkdir()
-            (root / "generated" / "gen.py").write_text("x = 1", encoding="utf-8")
-            (root / "other").mkdir()
-            (root / "other" / "ok.py").write_text("x = 1", encoding="utf-8")
-
-            srcs: list[str | Path] = [
-                "../generated/gen.py",
-                root / "src" / ".." / "generated" / "gen.py",
-            ]
-            with change_directory(root / "src"):
-                for src in srcs:
-                    assert_collected_sources(
-                        src=[src],
-                        root=root,
-                        force_exclude=r"^/generated/",
-                        expected=[],
-                    )
-                assert_collected_sources(
-                    src=["-"],
-                    root=root,
-                    force_exclude=r"^/generated/",
-                    stdin_filename="../generated/gen.py",
-                    expected=[],
-                )
-                assert_collected_sources(
-                    src=["../other/ok.py"],
-                    root=root,
-                    force_exclude=r"^/generated/",
-                    expected=["../other/ok.py"],
-                )
-
-    def test_get_sources_parent_dir_path_through_symlink(self) -> None:
-        # link/../../a/x/mod.py is root/a/x/mod.py on disk, but collapsing the
-        # ".." without following the symlink would leave the root.
-        with TemporaryDirectory() as tempdir:
-            root = Path(tempdir).resolve() / "root"
-            (root / "a" / "b").mkdir(parents=True)
-            (root / "a" / "x").mkdir()
-            (root / "a" / "x" / "mod.py").write_text("x = 1", encoding="utf-8")
-            (root / "pyproject.toml").write_text("[tool.pyink]", encoding="utf-8")
-            symlink_or_skip(root / "link", root / "a" / "b")
-
-            # Windows removes ".." before following symlinks, so there the path
-            # points outside the root to a file that doesn't exist.
-            src = "link/../../a/x/mod.py"
-            expected = [] if sys.platform == "win32" else [src]
-            with change_directory(root):
-                assert_collected_sources(
-                    src=[src],
-                    root=root,
-                    force_exclude=r"^/generated/",
-                    expected=expected,
                 )
 
     def test_get_sources_with_stdin_symlink_outside_root(
@@ -3520,7 +2982,7 @@ class TestFileCollection:
             target = tmp / "outside_root" / "a.py"
             target.parent.mkdir()
             target.write_text("print('hello')", encoding="utf-8")
-            symlink_or_skip(root / "a.py", target)
+            (root / "a.py").symlink_to(target)
 
             stdin_filename = str(root / "a.py")
             assert_collected_sources(
@@ -3682,7 +3144,7 @@ class TestFileCollection:
             tmp = Path(tempdir).resolve()
             (tmp / "exclude").mkdir()
             (tmp / "exclude" / "a.py").write_text("print('hello')", encoding="utf-8")
-            symlink_or_skip(tmp / "symlink.py", tmp / "exclude" / "a.py")
+            (tmp / "symlink.py").symlink_to(tmp / "exclude" / "a.py")
 
             stdin_filename = str(tmp / "symlink.py")
             expected = [f"__PYINK_STDIN_FILENAME__{stdin_filename}"]
@@ -3880,25 +3342,6 @@ class TestASTSafety(BlackBaseTestCase):
         target_name = f"py3{current_minor}"
         code = "x = 1\n"
         args = ["--target-version", target_name, "--code", code]
-        result = BlackRunner().invoke(pyink.main, args)
-        stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
-        assert "Warning:" not in stderr
-
-    def test_mixed_target_versions_with_runtime_no_warning(self) -> None:
-        """Regression test for #5164: no spurious warning when target includes
-        the runtime version alongside higher versions."""
-        current_minor = sys.version_info[1]
-        higher_target = f"py3{current_minor + 1}"
-        runtime_target = f"py3{current_minor}"
-        code = "x = 1\n"
-        args = [
-            "--target-version",
-            runtime_target,
-            "--target-version",
-            higher_target,
-            "--code",
-            code,
-        ]
         result = BlackRunner().invoke(pyink.main, args)
         stderr = result.stderr_bytes.decode() if result.stderr_bytes else ""
         assert "Warning:" not in stderr
