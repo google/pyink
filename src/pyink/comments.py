@@ -57,9 +57,18 @@ class ProtoComment:
     consumed: int  # how many characters of the original leaf's prefix did we consume
     form_feed: bool  # is there a form feed before the comment
     leading_whitespace: str  # leading whitespace before the comment, if any
+    original_value: str  # original comment text, before normalization
+    prefix_line_index: int  # 0-based physical line index within the parsed prefix
 
 
-def generate_comments(leaf: LN, mode: Mode) -> Iterator[Leaf]:
+def generate_comments(
+    leaf: LN,
+    mode: Mode,
+    *,
+    preserve_comment_formatting: bool = False,
+    line_ranges_first_lineno: int = 0,
+    line_ranges_selected: set[int] | None = None,
+) -> Iterator[Leaf]:
     """Clean the prefix of the `leaf` and generate comments from it, if any.
 
     Comments in lib2to3 are shoved into the whitespace prefix.  This happens
@@ -79,12 +88,23 @@ def generate_comments(leaf: LN, mode: Mode) -> Iterator[Leaf]:
     are emitted with a fake STANDALONE_COMMENT token identifier.
     """
     total_consumed = 0
-    for pc in list_comments(
+    comments = list_comments(
         leaf.prefix, is_endmarker=leaf.type == token.ENDMARKER, mode=mode
-    ):
+    )
+    prefix_line_count = len(re.split(r"\r?\n|\r", leaf.prefix)) - 1
+    for pc in comments:
         total_consumed = pc.consumed
         prefix = make_simple_prefix(pc.newlines, pc.form_feed)
-        yield Leaf(pc.type, pc.value, prefix=prefix)
+        value = pc.value
+        comment_lineno = (
+            line_ranges_first_lineno - prefix_line_count + pc.prefix_line_index
+        )
+        should_preserve = preserve_comment_formatting and (
+            line_ranges_selected is None or comment_lineno not in line_ranges_selected
+        )
+        if should_preserve:
+            value = pc.leading_whitespace + pc.original_value
+        yield Leaf(pc.type, value, prefix=prefix)
     normalize_trailing_prefix(leaf, total_consumed)
 
 
@@ -129,6 +149,8 @@ def list_comments(prefix: str, *, is_endmarker: bool, mode: Mode) -> list[ProtoC
                 consumed=consumed,
                 form_feed=form_feed,
                 leading_whitespace=whitespace,
+                original_value=line,
+                prefix_line_index=index,
             )
         )
         form_feed = False
@@ -195,9 +217,19 @@ def normalize_fmt_off(
     node: Node, mode: Mode, lines: Collection[tuple[int, int]]
 ) -> None:
     """Convert content between `# fmt: off`/`# fmt: on` into standalone comments."""
-    try_again = True
-    while try_again:
-        try_again = convert_one_fmt_off_pair(node, mode, lines)
+    # Walk the leaves once and resume scanning from the last converted position
+    # instead of restarting from the root for every pair. Converting a pair only
+    # mutates the tree at or after the converted leaf, so earlier leaves never
+    # need to be revisited.
+    leaves = list(node.leaves())
+    # Per-parent hint of where the previous conversion removed a child, so the
+    # left-to-right removals below don't rescan each parent's children list from
+    # index 0 every time (quadratic when a file has many `# fmt: off` blocks
+    # sharing one parent).
+    search_hints: dict[int, int] = {}
+    i = 0
+    while i < len(leaves):
+        i = convert_one_fmt_off_pair(node, leaves, i, mode, lines, search_hints)
 
 
 def _should_process_fmt_comment(
@@ -297,9 +329,11 @@ def _handle_comment_only_fmt_block(
         # This preserves all comments and content before the fmt:off directive
         pre_fmt_off_consumed = all_comments[fmt_off_idx - 1].consumed
 
-    standalone_comment_prefix = (
-        original_prefix[:pre_fmt_off_consumed] + "\n" * comment.newlines
-    )
+    preceding_prefix = original_prefix[:pre_fmt_off_consumed]
+    if fmt_off_idx > 0:
+        preceding_prefix = preceding_prefix.lstrip("\r\n")
+
+    standalone_comment_prefix = preceding_prefix + "\n" * comment.newlines
 
     fmt_off_prefix = original_prefix.split(comment.value)[0]
     if "\n" in fmt_off_prefix:
@@ -334,13 +368,26 @@ def _handle_comment_only_fmt_block(
 
 
 def convert_one_fmt_off_pair(
-    node: Node, mode: Mode, lines: Collection[tuple[int, int]]
-) -> bool:
+    node: Node,
+    leaves: list[Leaf],
+    start: int,
+    mode: Mode,
+    lines: Collection[tuple[int, int]],
+    search_hints: dict[int, int] | None = None,
+) -> int:
     """Convert content of a single `# fmt: off`/`# fmt: on` into a standalone comment.
 
-    Returns True if a pair was converted.
+    Scans `leaves` starting at `start`. Returns the index to resume scanning from:
+    the index of the leaf that was just converted (so further directives on the same
+    leaf are reconsidered), or ``len(leaves)`` when no further pair is found.
     """
-    for leaf in node.leaves():
+    for idx in range(start, len(leaves)):
+        leaf = leaves[idx]
+        # A previous conversion may have detached this leaf from the tree (e.g. it
+        # was absorbed into a fmt: off block); such leaves are already handled.
+        if not _is_attached(leaf, node):
+            continue
+
         # Skip STANDALONE_COMMENT nodes that were created by fmt:off/on/skip processing
         # to avoid reprocessing them in subsequent iterations
         if leaf.type == STANDALONE_COMMENT and hasattr(
@@ -357,11 +404,10 @@ def convert_one_fmt_off_pair(
                 previous_consumed = comment.consumed
                 continue
 
-            # Avoid preprocessing `# fmt: skip` that fall outside the specified
-            # formatting line ranges. Converting a `# fmt: skip` located outside of
-            # line ranges into a `STANDALONE_COMMENT` would remove structure (like
-            # closing brackets) from the AST, which then breaks bracket tracking
-            # and spacing during unchanged line reconstruction.
+            # GOOGLE(b/516964089): Avoid preprocessing `# fmt: skip` outside the
+            # formatting line ranges unless the target is a standalone docstring
+            # (cl/967895425; upstream fixed the underlying closing-bracket AST
+            # corruption in https://github.com/psf/black/pull/5477).
             if is_fmt_skip and lines:
                 comment_lineno = leaf.lineno - comment.newlines
                 if not any(start <= comment_lineno <= end for start, end in lines):
@@ -382,7 +428,7 @@ def convert_one_fmt_off_pair(
                 if _handle_comment_only_fmt_block(
                     leaf, comment, previous_consumed, mode
                 ):
-                    return True
+                    return idx
                 continue
 
             # Need actual nodes to process
@@ -398,10 +444,35 @@ def convert_one_fmt_off_pair(
                 is_fmt_skip,
                 lines,
                 leaf,
+                search_hints,
             )
-            return True
+            return idx
 
+    return len(leaves)
+
+
+def _is_attached(leaf: Leaf, root: Node) -> bool:
+    """Return whether `leaf` is still reachable from `root` through its parents."""
+    current: LN | None = leaf
+    while current is not None:
+        if current is root:
+            return True
+        current = current.parent
     return False
+
+
+def _remove_preceding_newline_for_comment(result: str) -> str:
+    comment_line_start = result.rfind("\n") + 1
+    comment_start = result.find("#", comment_line_start)
+    if comment_start < 0:
+        return result
+
+    newline_before_comment = result.rfind("\n", 0, comment_start)
+    if newline_before_comment >= 0 and result[
+        newline_before_comment + 1 :
+    ].lstrip().startswith("#"):
+        return result[:newline_before_comment] + result[newline_before_comment + 1 :]
+    return result
 
 
 def _handle_regular_fmt_block(
@@ -411,6 +482,7 @@ def _handle_regular_fmt_block(
     is_fmt_skip: bool,
     lines: Collection[tuple[int, int]],
     leaf: Leaf,
+    search_hints: dict[int, int] | None = None,
 ) -> None:
     """Handle fmt blocks with actual AST nodes."""
     first = ignored_nodes[0]  # Can be a container node with the `leaf`.
@@ -427,14 +499,25 @@ def _handle_regular_fmt_block(
 
     # Ensure STANDALONE_COMMENT nodes have trailing newlines when stringified
     # This prevents multiple fmt: skip comments from being concatenated on one line
+    def stringify_standalone_comment(node: Leaf, next_node: LN | None) -> str:
+        node_str = str(node)
+        if not node_str.endswith("\n") and (
+            next_node is None
+            or (isinstance(next_node, Leaf) and next_node.type == STANDALONE_COMMENT)
+            or "\n" in next_node.prefix
+        ):
+            node_str += "\n"
+        return node_str
+
     parts = []
-    for node in ignored_nodes:
+    for node_index, node in enumerate(ignored_nodes):
         if isinstance(node, Leaf) and node.type == STANDALONE_COMMENT:
-            # Add newline after STANDALONE_COMMENT Leaf
-            node_str = str(node)
-            if not node_str.endswith("\n"):
-                node_str += "\n"
-            parts.append(node_str)
+            next_node = (
+                ignored_nodes[node_index + 1]
+                if node_index + 1 < len(ignored_nodes)
+                else None
+            )
+            parts.append(stringify_standalone_comment(node, next_node))
         elif isinstance(node, Node):
             # For nodes that might contain STANDALONE_COMMENT leaves,
             # we need custom stringify
@@ -443,17 +526,30 @@ def _handle_regular_fmt_block(
             )
             if has_standalone:
                 # Stringify node with STANDALONE_COMMENT leaves having trailing newlines
-                def stringify_node(n: LN) -> str:
+                def stringify_node(n: LN, next_node: LN | None = None) -> str:
                     if isinstance(n, Leaf):
                         if n.type == STANDALONE_COMMENT:
                             result = n.prefix + n.value
+                            if (
+                                isinstance(next_node, Leaf)
+                                and next_node.type in CLOSING_BRACKETS
+                                and "\n" in n.value
+                            ):
+                                result = _remove_preceding_newline_for_comment(result)
                             if not result.endswith("\n"):
                                 result += "\n"
                             return result
                         return str(n)
                     else:
                         # For nested nodes, recursively process children
-                        return "".join(stringify_node(child) for child in n.children)
+                        children = n.children
+                        next_children = [*children[1:], None]
+                        return "".join(
+                            stringify_node(child, next_child)
+                            for child, next_child in zip(
+                                children, next_children, strict=True
+                            )
+                        )
 
                 parts.append(stringify_node(node))
             else:
@@ -494,7 +590,19 @@ def _handle_regular_fmt_block(
 
     first_idx: int | None = None
     for ignored in ignored_nodes:
-        index = ignored.remove()
+        ignored_parent = ignored.parent
+        hint = (
+            search_hints.get(id(ignored_parent), 0)
+            if search_hints is not None and ignored_parent is not None
+            else 0
+        )
+        index = ignored.remove(hint)
+        if (
+            index is not None
+            and search_hints is not None
+            and ignored_parent is not None
+        ):
+            search_hints[id(ignored_parent)] = index
         if first_idx is None:
             first_idx = index
 
@@ -610,22 +718,28 @@ def _should_keep_compound_statement_inline(
     Returns True only for compound statements with semicolon-separated bodies,
     like: if True: print("a"); print("b")  # fmt: skip
     """
-    # Check if there are semicolons in the body
-    for leaf in body_node.leaves():
-        if leaf.type == token.SEMI:
-            # Verify it's a single-line body (one simple_stmt)
-            if body_node.type == syms.suite:
-                # After formatting: check suite has one simple_stmt child
-                simple_stmts = [
-                    child
-                    for child in body_node.children
-                    if child.type == syms.simple_stmt
-                ]
-                return len(simple_stmts) == 1 and simple_stmts[0] is simple_stmt_parent
-            else:
-                # Original form: body_node IS the simple_stmt
-                return body_node is simple_stmt_parent
-    return False
+    # Narrow down to the single simple_stmt that may carry the semicolons before
+    # scanning any leaves. A compound statement's suite holds one child per body
+    # statement, so walking the whole suite here is O(n) and, called once per
+    # `# fmt: skip` line in the block, makes the pass O(n^2).
+    if body_node.type == syms.suite:
+        # After formatting: the suite must hold exactly one simple_stmt and it
+        # must be the one carrying the directive. Stop at the second simple_stmt.
+        target: LN | None = None
+        for child in body_node.children:
+            if child.type == syms.simple_stmt:
+                if target is not None:
+                    return False
+                target = child
+        if target is None or target is not simple_stmt_parent:
+            return False
+    else:
+        # Original form: body_node IS the simple_stmt
+        if body_node is not simple_stmt_parent:
+            return False
+        target = body_node
+
+    return any(leaf.type == token.SEMI for leaf in target.leaves())
 
 
 def _get_compound_statement_header(
@@ -642,6 +756,17 @@ def _get_compound_statement_header(
 
     # Collect all header leaves before the body
     header_leaves: list[LN] = []
+    # `async with`/`async for`/`async def` wrap the compound statement in an
+    # async_stmt, so the leading ASYNC token is a sibling of compound_stmt rather
+    # than a child. Pick it up first, otherwise it is left out of the ignored
+    # nodes and reformatted onto its own line, breaking the statement.
+    if (
+        compound_stmt.parent is not None
+        and compound_stmt.parent.type == syms.async_stmt
+        and compound_stmt.prev_sibling is not None
+        and compound_stmt.prev_sibling.type == token.ASYNC
+    ):
+        header_leaves.append(compound_stmt.prev_sibling)
     for child in compound_stmt.children:
         if child is body_node:
             break
@@ -662,6 +787,16 @@ def _find_closest_previous_sibling(node: LN) -> LN | None:
             return prev_sibling
         current = current.parent
     return None
+
+
+def _children_lead_ignored_nodes(node: LN, ignored_nodes: list[LN]) -> bool:
+    """Return True if `ignored_nodes` starts with every child of `node`."""
+    children = node.children
+    return (
+        bool(children)
+        and len(ignored_nodes) >= len(children)
+        and all(a is b for a, b in zip(ignored_nodes, children, strict=False))
+    )
 
 
 def _generate_ignored_nodes_from_fmt_skip(
@@ -791,6 +926,30 @@ def _generate_ignored_nodes_from_fmt_skip(
 
             if current_node.prev_sibling is None and current_node.parent is not None:
                 current_node = current_node.parent
+                # Every child of the node we are climbing out of is now ignored, so
+                # take the node itself instead. Converting only its leaves would
+                # leave the emptied node in the tree, and visitors that expect
+                # children, like the one for PEP 695 type parameters, crash on it.
+                # Children collapsed on an earlier climb are already nodes here, so
+                # compare against children rather than leaves.
+                if _children_lead_ignored_nodes(current_node, ignored_nodes):
+                    ignored_nodes[: len(current_node.children)] = [current_node]
+                    # The collapsed node can be the first child of a parent that
+                    # is now fully ignored as well (`a + b` in `a + b if c else d`).
+                    # Collapse that parent too and keep walking from it. Stopping
+                    # one level short leaves the parent's children in the list next
+                    # to a sibling from the enclosing node, and the standalone
+                    # comment then lands inside the parent while that sibling is
+                    # removed from around it, turning e.g. a tuple into a call.
+                    while (
+                        current_node.prev_sibling is None
+                        and current_node.parent is not None
+                        and _children_lead_ignored_nodes(
+                            current_node.parent, ignored_nodes
+                        )
+                    ):
+                        current_node = current_node.parent
+                        ignored_nodes[: len(current_node.children)] = [current_node]
 
         # Special handling for compound statements with semicolon-separated bodies
         if isinstance(parent, Node):
@@ -799,6 +958,27 @@ def _generate_ignored_nodes_from_fmt_skip(
                 header_nodes = _get_compound_statement_header(body_node, parent)
                 if header_nodes:
                     ignored_nodes = header_nodes + ignored_nodes
+
+        # If the nodes captured for the comment's physical line leave a bracket
+        # open, the `# fmt: skip` sits inside a multi-line bracketed statement
+        # (e.g. on the `from x import (` line). Skipping only that line would
+        # reformat the rest of the statement, so preserve the whole enclosing
+        # statement instead.
+        bracket_depth = 0
+        for node in ignored_nodes:
+            for ignored_leaf in node.leaves():
+                if ignored_leaf.type in OPENING_BRACKETS:
+                    bracket_depth += 1
+                elif ignored_leaf.type in CLOSING_BRACKETS:
+                    bracket_depth -= 1
+        if bracket_depth > 0:
+            statement: LN = leaf
+            while statement.parent is not None and statement.parent.type not in (
+                syms.file_input,
+                syms.suite,
+            ):
+                statement = statement.parent
+            ignored_nodes = [statement]
 
         leaf_is_ignored = any(
             ignored is leaf

@@ -1,11 +1,10 @@
-import io
 import os
 import sys
 from collections.abc import Iterable, Iterator, Sequence
 from functools import lru_cache
 from pathlib import Path
 from re import Pattern
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, TextIO, Union
 
 from mypy_extensions import mypyc_attr
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
@@ -43,10 +42,9 @@ def _cached_resolve(path: Path) -> Path:
     return path.resolve()
 
 
-@lru_cache
 def find_project_root(
-    srcs: Sequence[str], stdin_filename: str | None = None
-) -> tuple[Path, str]:
+    srcs: Sequence[str | Path], stdin_filename: str | None = None
+) -> tuple[Path | None, str | None]:
     """Return a directory containing .git, .hg, or pyproject.toml.
 
     pyproject.toml files are only considered if they contain a [tool.pyink]
@@ -58,16 +56,30 @@ def find_project_root(
     If no directory in the tree contains a marker that would specify it's the
     project root, the root of the file system is returned.
 
+    If the sources share no common parent at all (for example, they live on
+    different drives on Windows), there is no project root and
+    ``(None, None)`` is returned.
+
     Returns a two-tuple with the first element as the project root path and
     the second element as a string describing the method by which the
     project root was discovered.
     """
     if stdin_filename is not None:
         srcs = tuple(stdin_filename if s == "-" else s for s in srcs)
-    if not srcs:
-        srcs = [str(_cached_resolve(Path.cwd()))]
 
-    path_srcs = [_cached_resolve(Path(Path.cwd(), src)) for src in srcs]
+    if not srcs:
+        resolved_srcs: tuple[str, ...] = (str(_cached_resolve(Path.cwd())),)
+    else:
+        resolved_srcs = tuple(
+            str(_cached_resolve(Path(Path.cwd(), src))) for src in srcs
+        )
+
+    return _find_project_root_cached(resolved_srcs)
+
+
+@lru_cache
+def _find_project_root_cached(srcs: tuple[str, ...]) -> tuple[Path | None, str | None]:
+    path_srcs = [Path(src) for src in srcs]
 
     # A list of lists of parents for each 'src'. 'src' is included as a
     # "parent" of itself if it is a directory
@@ -75,10 +87,10 @@ def find_project_root(
         list(path.parents) + ([path] if path.is_dir() else []) for path in path_srcs
     ]
 
-    common_base = max(
-        set.intersection(*(set(parents) for parents in src_parents)),
-        key=lambda path: path.parts,
-    )
+    common_parents = set.intersection(*(set(parents) for parents in src_parents))
+    if not common_parents:
+        return None, None
+    common_base = max(common_parents, key=lambda path: path.parts)
 
     for directory in (common_base, *common_base.parents):
         if (directory / ".git").exists():
@@ -100,9 +112,10 @@ def find_pyproject_toml(
 ) -> str | None:
     """Find the absolute filepath to a pyproject.toml if it exists"""
     path_project_root, _ = find_project_root(path_search_start, stdin_filename)
-    path_pyproject_toml = path_project_root / "pyproject.toml"
-    if path_pyproject_toml.is_file():
-        return str(path_pyproject_toml)
+    if path_project_root is not None:
+        path_pyproject_toml = path_project_root / "pyproject.toml"
+        if path_pyproject_toml.is_file():
+            return str(path_pyproject_toml)
 
     try:
         path_user_pyproject_toml = find_user_pyproject_toml()
@@ -238,8 +251,10 @@ def find_user_pyproject_toml() -> Path:
 
 
 @lru_cache
-def get_gitignore(root: Path) -> GitIgnoreSpec:
+def get_gitignore(root: Path | None) -> GitIgnoreSpec:
     """Return a GitIgnoreSpec matching gitignore content if present."""
+    if root is None:
+        return GitIgnoreSpec.from_lines([])
     gitignore = root / ".gitignore"
     lines: list[str] = []
     if gitignore.is_file():
@@ -276,15 +291,28 @@ def resolves_outside_root_or_cannot_stat(
     return False
 
 
+def _collapse_parent_dirs(relative_path: Path) -> Path:
+    """Collapse ".." in a root-relative path without resolving symlinks.
+
+    This way exclusion regexes see "generated/x.py" rather than
+    "src/../generated/x.py". If a symlink makes the collapsed path leave the
+    root, the path is kept as given.
+    """
+    collapsed = Path(os.path.normpath(relative_path))
+    if collapsed.parts[:1] == ("..",):
+        return relative_path
+    return collapsed
+
+
 def best_effort_relative_path(path: Path, root: Path) -> Path:
     # Precondition: resolves_outside_root_or_cannot_stat(path, root) is False
     try:
-        return path.absolute().relative_to(root)
+        return _collapse_parent_dirs(path.absolute().relative_to(root))
     except ValueError:
         pass
     root_parent = next((p for p in path.parents if _cached_resolve(p) == root), None)
     if root_parent is not None:
-        return path.relative_to(root_parent)
+        return _collapse_parent_dirs(path.relative_to(root_parent))
     # something adversarial, fallback to path guaranteed by precondition
     return _cached_resolve(path).relative_to(root)
 
@@ -401,14 +429,13 @@ def gen_python_files(
                 warn=verbose or not quiet
             ):
                 continue
-            include_match = include.search(root_relative_path) if include else True
-            if include_match:
+            if include.search(root_relative_path):
                 yield child
 
 
 def wrap_stream_for_windows(
-    f: io.TextIOWrapper,
-) -> Union[io.TextIOWrapper, "colorama.AnsiToWin32"]:
+    f: TextIO,
+) -> Union[TextIO, "colorama.AnsiToWin32"]:
     """
     Wrap stream with colorama's wrap_stream so colors are shown on Windows.
 

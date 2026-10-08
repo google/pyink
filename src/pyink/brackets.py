@@ -1,6 +1,6 @@
 """Builds on top of nodes.py to track brackets."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import Final, Union
 
@@ -225,6 +225,17 @@ def is_split_after_delimiter(leaf: Leaf) -> Priority:
     Higher numbers are higher priority.
     """
     if leaf.type == token.COMMA:
+        # For-target commas are tuple-packing, not list delimiters; splitting
+        # on them produces invalid Python if `for` lands on another line (#4296).
+        parent = leaf.parent
+        if parent is not None and parent.type == syms.exprlist:
+            grandparent = parent.parent
+            if grandparent is not None and grandparent.type in {
+                syms.comp_for,
+                syms.old_comp_for,
+                syms.for_stmt,
+            }:
+                return 0
         return COMMA_PRIORITY
 
     return 0
@@ -341,17 +352,43 @@ def max_delimiter_priority_in_atom(node: LN) -> Priority:
         return 0
 
     bt = BracketTracker()
-    for c in node.children[1:-1]:
-        if isinstance(c, Leaf):
-            bt.mark(c)
-        else:
-            for leaf in c.leaves():
-                bt.mark(leaf)
+    for leaf in _top_level_leaves(node.children[1:-1]):
+        bt.mark(leaf)
     try:
         return bt.max_delimiter_priority()
 
     except ValueError:
         return 0
+
+
+def _top_level_leaves(children: Iterable[LN]) -> Iterator[Leaf]:
+    """Yield the leaves that can be top-level (depth 0) delimiters of an atom.
+
+    Anything inside a nested bracket pair is at depth >= 1 and therefore cannot
+    be a top-level delimiter, so only the pair's brackets are kept (to balance
+    the depth tracker) and its interior is skipped. This keeps the scan
+    proportional to the atom's own length instead of re-walking every descendant
+    on every call, which matters for deeply nested expressions like
+    ``((((...))))``.
+    """
+    for child in children:
+        if isinstance(child, Leaf):
+            yield child
+            continue
+        if not child.children:
+            continue
+        first = child.children[0]
+        last = child.children[-1]
+        if (
+            isinstance(first, Leaf)
+            and isinstance(last, Leaf)
+            and first.type in OPENING_BRACKETS
+            and last.type in CLOSING_BRACKETS
+        ):
+            yield first
+            yield last
+        else:
+            yield from _top_level_leaves(child.children)
 
 
 def get_leaves_inside_matching_brackets(leaves: Sequence[Leaf]) -> set[LeafID]:
@@ -367,17 +404,26 @@ def get_leaves_inside_matching_brackets(leaves: Sequence[Leaf]) -> set[LeafID]:
         )
     except StopIteration:
         return set()
-    bracket_stack = []
-    ids = set()
+    # Each open bracket collects the ids of the leaves at its own nesting level.
+    # When the matching closing bracket is reached the pair is confirmed as inside
+    # matching brackets, so those ids are kept (the ids of any nested pair are
+    # already kept, having been flushed when that inner pair closed). Unmatched
+    # opening brackets are dropped along with the ids they collected. Collecting
+    # each leaf under a single level keeps this linear instead of re-adding every
+    # enclosed leaf once per surrounding bracket.
+    ids: set[LeafID] = set()
+    bracket_stack: list[tuple[int, list[LeafID]]] = []
     for i in range(start_index, len(leaves)):
         leaf = leaves[i]
         if leaf.type in OPENING_BRACKETS:
-            bracket_stack.append((BRACKET[leaf.type], i))
-        if leaf.type in CLOSING_BRACKETS:
+            bracket_stack.append((BRACKET[leaf.type], [id(leaf)]))
+        elif leaf.type in CLOSING_BRACKETS:
             if bracket_stack and leaf.type == bracket_stack[-1][0]:
-                _, start = bracket_stack.pop()
-                for j in range(start, i + 1):
-                    ids.add(id(leaves[j]))
+                _, level_ids = bracket_stack.pop()
+                level_ids.append(id(leaf))
+                ids.update(level_ids)
             else:
                 break
+        elif bracket_stack:
+            bracket_stack[-1][1].append(id(leaf))
     return ids
