@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import NamedTuple, Optional, TypeVar, Union, cast
 
 from pyink.brackets import COMMA_PRIORITY, DOT_PRIORITY, BracketTracker
-from pyink.comments import FMT_ON, contains_fmt_directive
 from pyink.mode import Mode, Preview
 from pyink.nodes import (
     BRACKETS,
@@ -15,16 +14,13 @@ from pyink.nodes import (
     STANDALONE_COMMENT,
     TEST_DESCENDANTS,
     child_towards,
-    first_leaf,
     is_docstring,
     is_import,
     is_multiline_string,
     is_one_sequence_between,
-    is_one_tuple,
     is_type_comment,
     is_pragma_comment,
     is_with_or_async_with_stmt,
-    last_leaf,
     make_simple_prefix,
     replace_child,
     syms,
@@ -66,9 +62,6 @@ class Line:
     inside_brackets: bool = False
     should_split_rhs: bool = False
     magic_trailing_comma: Leaf | None = None
-    _complex_subscript_cache: dict[LeafID, bool] = field(
-        default_factory=dict, repr=False
-    )
 
     def indentation_spaces(self) -> int:
         return sum(d.num_spaces(self.mode) for d in self.depth)
@@ -109,16 +102,7 @@ class Line:
             if self.mode.magic_trailing_comma:
                 if self.has_magic_trailing_comma(leaf):
                     self.magic_trailing_comma = leaf
-            elif self.has_magic_trailing_comma(leaf) and not (
-                # A one-element tuple's trailing comma is syntactically required,
-                # not magic, so it must never be removed. This is normally caught
-                # by has_magic_trailing_comma, but that check misses the tuple
-                # when its opening bracket was split onto an earlier line (for
-                # example by a standalone comment inside the tuple), so verify
-                # against the tree here before dropping the comma.
-                leaf.parent is not None
-                and is_one_tuple(leaf.parent)
-            ):
+            elif self.has_magic_trailing_comma(leaf):
                 self.remove_trailing_comma()
         if not self.append_comment(leaf):
             self.leaves.append(leaf)
@@ -334,18 +318,6 @@ class Line:
 
         return False
 
-    def contains_multiple_type_ignores_at_current_depth(self) -> bool:
-        count = 0
-        for leaf in self.leaves:
-            if leaf.bracket_depth != 0:
-                continue
-            for comment in self.comments_after(leaf):
-                if is_pragma_comment(comment, mode=self.mode):
-                    count += 1
-                    if count > 1:
-                        return True
-        return False
-
     def contains_unsplittable_type_ignore(self) -> bool:
         if not self.leaves:
             return False
@@ -368,7 +340,7 @@ class Line:
             (leaf.lineno for leaf in reversed(self.leaves) if leaf.lineno != 0), 0
         )
 
-        if first_line == last_line and first_line != 0:
+        if first_line == last_line:
             # We look at the last two leaves since a comma or an
             # invisible paren could have been added at the end of the
             # line.
@@ -450,15 +422,16 @@ class Line:
             and last_leaf.parent
             and len(list(last_leaf.parent.leaves())) <= 3
             and not is_type_comment(comment, mode=self.mode)
-            and not self.contains_standalone_comments()
         ):
             # Comments on an optional parens wrapping a single leaf should belong to
             # the wrapped node except if it's a type comment. Pinning the comment like
-            # this avoids unstable formatting caused by comment migration. If the
-            # parens contain standalone comments they are going to stay visible, so
-            # the comment belongs to the closing paren, as it was written.
-            if len(self.leaves) >= 2:
-                last_leaf = self.leaves[-2]
+            # this avoids unstable formatting caused by comment migration.
+            if len(self.leaves) < 2:
+                comment.type = STANDALONE_COMMENT
+                comment.prefix = ""
+                return False
+
+            last_leaf = self.leaves[-2]
         self.comments.setdefault(id(last_leaf), []).append(comment)
         return True
 
@@ -489,22 +462,9 @@ class Line:
             if subscript_start.type == syms.subscriptlist:
                 subscript_start = child_towards(subscript_start, leaf)
 
-        if subscript_start is None:
-            return False
-
-        # The pre_order walk only depends on subscript_start, which is stable
-        # while a line is built, so cache it per node. Without this, appending
-        # every leaf of a large bracketed expression that holds no TEST_DESCENDANTS
-        # node (e.g. a long run of implicitly concatenated strings) re-walks the
-        # whole subtree each time, which is quadratic.
-        key = id(subscript_start)
-        cached = self._complex_subscript_cache.get(key)
-        if cached is None:
-            cached = any(
-                n.type in TEST_DESCENDANTS for n in subscript_start.pre_order()
-            )
-            self._complex_subscript_cache[key] = cached
-        return cached
+        return subscript_start is not None and any(
+            n.type in TEST_DESCENDANTS for n in subscript_start.pre_order()
+        )
 
     def enumerate_with_length(
         self, is_reversed: bool = False
@@ -637,10 +597,6 @@ class EmptyLineTracker:
         if not isinstance(funcdef, Node) or funcdef.type != syms.funcdef:
             return None
         # Grammar: funcdef = 'def' NAME parameters ':' ...
-        # `# fmt: skip` turns the leaves of a one-line definition into a
-        # STANDALONE_COMMENT, so there may be no name left to read.
-        if len(funcdef.children) < 2 or funcdef.children[1].type != token.NAME:
-            return None
         name_node = funcdef.children[1]
         assert isinstance(name_node, Leaf)
         return name_node.value
@@ -669,19 +625,6 @@ class EmptyLineTracker:
                 sibling = sibling.prev_sibling if reverse else sibling.next_sibling
             else:
                 return None
-        return None
-
-    @staticmethod
-    def _get_suite_first_decorated_funcname(suite: Node) -> str | None:
-        """Return the function name of the first decorated function in a suite."""
-        for child in suite.children:
-            if isinstance(child, Node) and child.type == syms.decorated:
-                for sub in child.children:
-                    if sub.type in (syms.funcdef, syms.async_funcdef):
-                        return EmptyLineTracker._get_funcdef_name(sub)
-                break
-            if child.type not in (token.NEWLINE, token.NL, token.INDENT, token.DEDENT):
-                break
         return None
 
     @staticmethod
@@ -765,41 +708,6 @@ class EmptyLineTracker:
             return False
         return any(child.type == syms.classdef for child in decorated.children)
 
-    @staticmethod
-    def _def_is_followed_by_same_name_decorated_func(
-        line: Line, *, include_conditional_blocks: bool = False
-    ) -> bool:
-        """Check if a decorated function is followed by a same-name decorated func.
-
-        If *include_conditional_blocks* is true, the next decorated function may
-        be inside an adjacent conditional block.
-        """
-        name = EmptyLineTracker._get_def_name(line)
-        decorated = EmptyLineTracker._find_decorated_node(line)
-        if name is None or decorated is None:
-            return False
-
-        sibling = decorated.next_sibling
-        while sibling is not None and sibling.type in _WHITESPACE_TOKENS:
-            sibling = sibling.next_sibling
-
-        if sibling is None or not isinstance(sibling, Node):
-            return False
-        if sibling.type == syms.decorated:
-            return EmptyLineTracker._decorated_node_has_func_named(sibling, name)
-        if not include_conditional_blocks or sibling.type != syms.if_stmt:
-            return False
-        for child in sibling.children:
-            if not isinstance(child, Node):
-                continue
-            if child.type != syms.suite:
-                continue
-            first_decorated_funcname = (
-                EmptyLineTracker._get_suite_first_decorated_funcname(child)
-            )
-            return first_decorated_funcname == name
-        return False
-
     def _is_in_current_group(self, current_line: Line) -> bool:
         """Check if current_line belongs to the same overload group being tracked."""
         prev = self._pyi_previous_decorated_func
@@ -863,7 +771,15 @@ class EmptyLineTracker:
         suite = line.leaves[-1].next_sibling
         if suite is None or not isinstance(suite, Node) or suite.type != syms.suite:
             return None
-        return EmptyLineTracker._get_suite_first_decorated_funcname(suite)
+        for child in suite.children:
+            if isinstance(child, Node) and child.type == syms.decorated:
+                for sub in child.children:
+                    if sub.type in (syms.funcdef, syms.async_funcdef):
+                        return EmptyLineTracker._get_funcdef_name(sub)
+                break
+            if child.type not in (token.NEWLINE, token.NL, token.INDENT, token.DEDENT):
+                break
+        return None
 
     @staticmethod
     def _block_is_part_of_overload_group(line: Line) -> bool:
@@ -880,7 +796,7 @@ class EmptyLineTracker:
         if suite is None or not isinstance(suite, Node):
             return False
         if_stmt = suite.parent
-        if if_stmt is None:
+        if if_stmt is None or not isinstance(if_stmt, Node):
             return False
 
         # Check if the if_stmt's next sibling is a same-name decorated function.
@@ -999,8 +915,7 @@ class EmptyLineTracker:
                 and (
                     self._pyi_previous_decorated_func is None
                     or (
-                        len(current_line.depth)
-                        <= len(self._pyi_previous_decorated_func.depth)
+                        current_line.depth <= self._pyi_previous_decorated_func.depth
                         # Don't reset on else/elif — they continue an if/else
                         # chain that may contain overloads at a deeper depth.
                         and not (
@@ -1026,10 +941,11 @@ class EmptyLineTracker:
         if (
             len(previous_block.original_line.leaves) != 1
             or not previous_block.original_line.is_docstring
-            or previous_block.original_line.depth
             or current_line.is_class
             or current_line.is_def
         ):
+            return False
+        if previous_block.original_line.depth:
             return False
         while previous_block := previous_block.previous_block:
             if not previous_block.original_line.is_comment:
@@ -1048,16 +964,7 @@ class EmptyLineTracker:
             # Consume the first leaf's extra newlines.
             first_leaf = current_line.leaves[0]
             before = first_leaf.prefix.count("\n")
-            # The blank lines that terminate a `# fmt: off` region live in the
-            # prefix of the `# fmt: on` comment, not in the verbatim block, so
-            # capping them here would edit formatting that was opted out of.
-            if not current_line.is_fmt_pass_converted() and not (
-                first_leaf.type == STANDALONE_COMMENT
-                and contains_fmt_directive(first_leaf.value, FMT_ON)
-                and self.previous_line is not None
-                and self.previous_line.is_fmt_pass_converted()
-            ):
-                before = min(before, max_allowed)
+            before = min(before, max_allowed)
             first_leaf.prefix = ""
         else:
             before = 0
@@ -1096,7 +1003,7 @@ class EmptyLineTracker:
                     and self._pyi_previous_decorated_func is not None
                     and self._pyi_previous_decorated_func.is_multi
                     and not current_line.is_comment
-                    and len(self.previous_line.depth) >= len(current_line.depth)
+                    and self.previous_line.depth >= current_line.depth
                     and not (
                         current_line.leaves
                         and current_line.leaves[0].value in ("else", "elif")
@@ -1121,22 +1028,11 @@ class EmptyLineTracker:
                     # else/elif continuing a conditional overload group:
                     # don't insert a blank line above.
                     before = 0
-                elif (
-                    Preview.pyi_blank_line_after_function_docstring in self.mode
-                    and previous_def.is_def
-                    and self.previous_line.is_docstring
-                    and len(self.previous_line.depth) == len(previous_def.depth) + 1
-                    and not self._def_is_followed_by_same_name_decorated_func(
-                        previous_def,
-                        include_conditional_blocks=overload_groups,
-                    )
-                ):
-                    before = 1
                 elif depth and not current_line.is_def and self.previous_line.is_def:
                     if (
                         overload_groups
                         and current_line.opens_block
-                        and len(self.previous_line.depth) <= len(current_line.depth)
+                        and self.previous_line.depth <= current_line.depth
                         and self._block_is_part_of_overload_group(current_line)
                     ):
                         before = 1
@@ -1188,29 +1084,11 @@ class EmptyLineTracker:
             )
 
         if (
-            Preview.fmt_off_class_blank_lines in self.mode
-            and self.previous_line.is_import
-            and not self.previous_line.depth
-            and not current_line.depth
-            and current_line.is_fmt_pass_converted(
-                first_leaf_matches=lambda leaf: leaf.value == "class"
-            )
-            # GOOGLE(b/498920640): Only force 2 blank lines for # fmt: off
-            # classes, not --pyink-lines unselected classes
-            # (https://github.com/psf/black/pull/5493).
-            and current_line.leaves[0].line_ranges_selected is None
-        ):
-            return 2, 0
-
-        if (
             self.previous_line.is_import
             and not self.previous_line.depth
             and not current_line.depth
             and not current_line.is_import
             and not current_line.is_fmt_pass_converted(first_leaf_matches=is_import)
-            # GOOGLE(b/498920640): Preserve existing blank lines before any
-            # fmt-pass-converted (unselected) line
-            # (https://github.com/psf/black/pull/5493).
             and not current_line.is_fmt_pass_converted()
         ):
             return 1, 0
@@ -1218,20 +1096,18 @@ class EmptyLineTracker:
         if (
             (
                 self.previous_line.is_import
-                # GOOGLE(b/275348197): Ensure a blank line after unselected
-                # imports (https://github.com/psf/black/pull/5493).
                 or self.previous_line.is_fmt_pass_converted(
                     first_leaf_matches=is_import
                 )
             )
             and not current_line.is_import
             and not (
-                # GOOGLE(b/275348197): Should not add empty lines before a STANDALONE_COMMENT.
+                # Should not add empty lines before a STANDALONE_COMMENT.
                 current_line.is_comment
                 and not current_line.is_fmt_pass_converted()
             )
             and not (
-                # GOOGLE(b/275348197): Should not add empty lines between fmt pass lines.
+                # Should not add empty lines between fmt pass lines.
                 current_line.is_fmt_pass_converted()
                 and self.previous_line.is_fmt_pass_converted()
             )
@@ -1293,10 +1169,10 @@ class EmptyLineTracker:
                     newlines = 0
                 else:
                     newlines = 1
-            # Don't inspect only the previous line if it's part of the body of the
-            # preceding statement. We always want a blank line after something with a
-            # body.
-            elif len(self.previous_line.depth) > len(current_line.depth):
+            # Don't inspect the previous line if it's part of the body of the previous
+            # statement in the same level, we always want a blank line if there's
+            # something with a body preceding.
+            elif self.previous_line.depth > current_line.depth:
                 if overload_groups and self._is_in_current_group(current_line):
                     newlines = 0
                 else:
@@ -1305,7 +1181,7 @@ class EmptyLineTracker:
                 overload_groups
                 and self._pyi_previous_decorated_func is not None
                 and self._pyi_previous_decorated_func.is_multi
-                and len(self.previous_line.depth) >= len(current_line.depth)
+                and self.previous_line.depth >= current_line.depth
             ):
                 newlines = 0 if self._is_in_current_group(current_line) else 1
             elif overload_groups and self._is_in_current_group(current_line):
@@ -1315,7 +1191,7 @@ class EmptyLineTracker:
             elif (
                 overload_groups
                 and current_line.is_decorator
-                and len(self.previous_line.depth) >= len(current_line.depth)
+                and self.previous_line.depth >= current_line.depth
                 and self._is_start_of_decorated_group(current_line)
                 and (
                     self._pyi_previous_decorated_func is None
@@ -1363,10 +1239,6 @@ class EmptyLineTracker:
                 not self.mode.is_pyink
                 and self.previous_line.is_stub_def
                 and not user_had_newline
-                and (
-                    Preview.blank_line_after_stub_method not in self.mode
-                    or self.previous_line.depth == current_line.depth
-                )
             ):
                 newlines = 0
         if comment_to_add_newlines is not None:
@@ -1402,33 +1274,9 @@ def append_leaves(
     Pre-conditions:
         set(@leaves) is a subset of set(@old_line.leaves).
     """
-    # @leaves is a slice of @old_line.leaves, so the leaves are in tree (DFS)
-    # order and the children replaced within any one parent are reached at
-    # strictly increasing positions. Remembering where the last child of each
-    # parent was found lets the lookup resume from there instead of rescanning the
-    # whole child list through Base.remove on every leaf, which is otherwise
-    # O(n^2) when a node has many children replaced (e.g. wrapping the operand
-    # tuple of "%s" % (a, b, c, ...) or copying a very long line for a second
-    # formatting pass).
-    search_start: dict[int, int] = {}
     for old_leaf in leaves:
         new_leaf = Leaf(old_leaf.type, old_leaf.value)
-        new_leaf.lineno = old_leaf.lineno
-        parent = old_leaf.parent
-        if parent is not None:
-            children = parent.children
-            index = search_start.get(id(parent), 0)
-            while index < len(children) and children[index] is not old_leaf:
-                index += 1
-            if index < len(children):
-                # set_child swaps the child in place (the old one keeps the same
-                # position), so the next sibling to replace is always further on.
-                parent.set_child(index, new_leaf)
-                search_start[id(parent)] = index + 1
-            else:
-                # The resume hint missed (unexpected ordering); fall back to the
-                # full scan so behaviour is unchanged.
-                replace_child(old_leaf, new_leaf)
+        replace_child(old_leaf, new_leaf)
         new_line.append(new_leaf, preformatted=preformatted)
 
         for comment_leaf in old_line.comments_after(old_leaf):
@@ -1464,10 +1312,6 @@ def is_line_short_enough(line: Line, *, mode: Mode, line_str: str = "") -> bool:
     multiline_string: Leaf | None = None
     # store the leaves that contain parts of the MLS
     multiline_string_contexts: list[LN] = []
-
-    # `id()`s of the leaves on this line, used to find which ancestors of the
-    # multiline string are rendered in full on this line (see below).
-    line_leaf_ids = {id(leaf) for leaf in line.leaves}
 
     max_level_to_update: int | float = math.inf  # track the depth of the MLS
     for i, leaf in enumerate(line.leaves):
@@ -1512,18 +1356,8 @@ def is_line_short_enough(line: Line, *, mode: Mode, line_str: str = "") -> bool:
                 return False
             multiline_string = leaf
             ctx: LN = leaf
-            # fetch the leaf components of the MLS in the AST. An ancestor is
-            # part of the MLS context while it is rendered in full on this line,
-            # i.e. its first and last leaves both belong to the line (a line is
-            # a contiguous run of leaves). Walking the leaf ids instead of
-            # re-rendering `str(ctx)` and substring-searching `line_str` at every
-            # level keeps this linear; the old form was quadratic on lines with a
-            # large multiline-string-bearing collection (e.g. a dict literal with
-            # many triple-quoted values).
-            while (
-                id(first_leaf(ctx)) in line_leaf_ids
-                and id(last_leaf(ctx)) in line_leaf_ids
-            ):
+            # fetch the leaf components of the MLS in the AST
+            while str(ctx) in line_str:
                 multiline_string_contexts.append(ctx)
                 if ctx.parent is None:
                     break
@@ -1573,29 +1407,9 @@ def can_be_split(line: Line) -> bool:
     return True
 
 
-def _is_annotated_assignment(head: Line) -> bool:
-    """Does `head` (an assignment's leaves up to the `=`) contain an annotation?
-
-    Detects a `:` at the top bracket level, as in `x: dict[str, int] = ...`.
-    Colons nested inside brackets (e.g. slices like `x[a:b]`) don't count.
-    """
-    depth = 0
-    for leaf in head.leaves:
-        if not leaf.value:
-            continue
-        if leaf.type in OPENING_BRACKETS:
-            depth += 1
-        elif leaf.type in CLOSING_BRACKETS:
-            depth -= 1
-        elif leaf.type == token.COLON and depth == 0:
-            return True
-    return False
-
-
 def can_omit_invisible_parens(
     rhs: RHSResult,
     line_length: int,
-    mode: Mode,
 ) -> bool:
     """Does `rhs.body` have a shape safe to reformat without optional parens around it?
 
@@ -1604,24 +1418,6 @@ def can_omit_invisible_parens(
     are too long.
     """
     line = rhs.body
-
-    # Multiple type ignores must stay on separate physical lines. Keeping the
-    # optional parens gives the line transformer a safe place to split them.
-    if (
-        line.contains_multiple_type_ignores_at_current_depth()
-        and not line.bracket_tracker.delimiters
-        and any(leaf.type == token.DOT for leaf in line.leaves)
-    ):
-        return False
-
-    # Don't omit optional parens when the opening paren carries an inline comment.
-    # Omitting them re-parents the comment onto a different leaf after the next
-    # parse, which can make the RHS splitter choose a different shape on each
-    # pass (unstable formatting / "different code on the second pass"). See
-    # issues #3701, #3706, and #4384.
-    if rhs.opening_bracket.type == token.LPAR and not rhs.opening_bracket.value:
-        if rhs.head.comments.get(id(rhs.opening_bracket)):
-            return False
 
     # We can't omit parens if doing so would result in a type: ignore comment
     # sharing a line with other comments, as that breaks type: ignore parsing.
@@ -1676,37 +1472,6 @@ def can_omit_invisible_parens(
             and leaf.value
         ):
             closing_bracket = leaf
-
-    # For assignments to a subscripted target whose head is too long to fit
-    # (e.g. `x[long_key][another_long_key] = expr`), the target must be split
-    # at its subscript brackets no matter what, so optional parens around a
-    # RHS that fits on the resulting tail line (`] = expr`) are unnecessary.
-    # When the head fits on one line, paren-wrapping the RHS remains the
-    # preferred style and this check must not fire. It must also come before
-    # the delimiter_count > 1 early return below, which would otherwise
-    # reject bodies with multiple delimiters such as `10 - 5`.
-    if (
-        Preview.fix_unnecessary_parens_in_indexed_assignment in mode
-        and len(rhs.head.leaves) >= 3
-        and rhs.head.leaves[-2].type == token.EQUAL
-        # The target must actually end with a subscript: a visible `]`
-        # immediately before the `=`. Invisible parens (e.g. around tuple
-        # targets like `(x,) = ...`) have an empty value and don't count.
-        and rhs.head.leaves[-3].type == token.RSQB
-        and rhs.head.leaves[-3].value
-        # In annotated assignments (`x: dict[str, int] = ...`) the `]` before
-        # the `=` belongs to the annotation; splitting on the annotation's
-        # brackets would be wrong, so leave the optional parens alone.
-        and not _is_annotated_assignment(rhs.head)
-        # The head must be too long to fit, forcing the subscript split.
-        and not is_line_short_enough(rhs.head, mode=mode)
-    ):
-        # 4 extra characters for the `] = ` prefix on the tail line.
-        tail_line_length = line.indentation_spaces() + 4
-        for _index, _leaf, leaf_length in line.enumerate_with_length():
-            tail_line_length += leaf_length
-        if tail_line_length <= line_length:
-            return True
 
     bt = line.bracket_tracker
     if not bt.delimiters:

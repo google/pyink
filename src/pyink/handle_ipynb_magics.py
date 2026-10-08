@@ -299,9 +299,7 @@ def replace_magics(src: str) -> tuple[str, list[Replacement]]:
             mask = get_token(src, magic, existing_tokens)
             replacements.append(Replacement(mask=mask, src=magic))
             existing_tokens.add(mask)
-            # AST column offsets are UTF-8 byte offsets, not character indices.
-            prefix = line.encode("utf-8")[:col_offset].decode("utf-8")
-            line = prefix + mask
+            line = line[:col_offset] + mask
         new_srcs.append(line)
     return "\n".join(new_srcs), replacements
 
@@ -323,7 +321,7 @@ def unmask_cell(src: str, replacements: list[Replacement]) -> str:
         if src.count(replacement.mask) != 1:
             raise NothingChanged
         src = src.replace(replacement.mask, replacement.src, 1)
-        # GOOGLE(b/366406164): Strings in src might have been reformatted with single quotes.
+        # Strings in src might have been reformatted with single quotes.
         src = src.replace(f"b'{replacement.mask[2:-1]}'", replacement.src)
     return src
 

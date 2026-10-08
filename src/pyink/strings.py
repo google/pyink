@@ -9,7 +9,6 @@ from re import Match, Pattern
 from typing import Final
 
 from pyink._width_table import WIDTH_TABLE
-from pyink.mode import Mode, Preview
 from pyink.mode import Quote
 from blib2to3.pytree import Leaf
 
@@ -23,15 +22,9 @@ UNICODE_ESCAPE_RE: Final = re.compile(
     r"|(U(?P<U>[a-fA-F0-9]{8}))"  # Character with 32-bit hex value xxxxxxxx
     r"|(x(?P<x>[a-fA-F0-9]{2}))"  # Character with hex value hh
     r"|(N\{(?P<N>[a-zA-Z0-9 \-]{2,})\})"  # Character named name in the Unicode database
-    r")?",
+    r")",
     re.VERBOSE,
 )
-# The line breaks the Python parser recognizes, and therefore the only ones that
-# may be treated as line endings inside a string. str.splitlines() also breaks
-# on form feed, vertical tab, NEL, the Unicode line and paragraph separators and
-# the C0 separators, all of which are ordinary characters of a string's value.
-# See output._splitlines_no_ff, which splits source code the same way.
-LINE_BREAK_RE: Final = re.compile(r"\r\n|[\r\n]")
 
 
 def sub_twice(regex: Pattern[str], replacement: str, original: str) -> str:
@@ -54,20 +47,20 @@ def has_triple_quotes(string: str) -> bool:
 
 def lines_with_leading_tabs_expanded(s: str) -> list[str]:
     """
-    Splits string into lines and expands only leading tabs.
-
-    Black normalizes code indentation to four-space columns, so leading tabs in
-    docstrings need the same width to keep relative indentation stable.
+    Splits string into lines and expands only leading tabs (following the normal
+    Python rules)
     """
     lines = []
-    for line in LINE_BREAK_RE.split(s):
+    for line in s.splitlines():
         stripped_line = line.lstrip()
         if not stripped_line or stripped_line == line:
             lines.append(line)
         else:
             prefix_length = len(line) - len(stripped_line)
-            prefix = line[:prefix_length].expandtabs(4)
+            prefix = line[:prefix_length].expandtabs()
             lines.append(prefix + stripped_line)
+    if s.endswith("\n"):
+        lines.append("")
     return lines
 
 
@@ -148,7 +141,7 @@ def assert_is_leaf_string(string: str) -> None:
     ), f"{set(string[:quote_idx])} is NOT a subset of {set(STRING_PREFIX_CHARS)}."
 
 
-def normalize_string_prefix(s: str, mode: Mode) -> str:
+def normalize_string_prefix(s: str) -> str:
     """Make all string prefixes lowercase."""
     match = STRING_PREFIX_RE.match(s)
     assert match is not None, f"failed to match string {s!r}"
@@ -160,8 +153,6 @@ def normalize_string_prefix(s: str, mode: Mode) -> str:
         .replace("u", "")
     )
 
-    if Preview.normalize_tstring_prefix in mode:
-        new_prefix = new_prefix.replace("T", "t")
     # Python syntax guarantees max 2 prefixes and that one of them is "r"
     if len(new_prefix) == 2 and new_prefix[0].lower() != "r":
         new_prefix = new_prefix[::-1]
@@ -174,21 +165,6 @@ def normalize_string_prefix(s: str, mode: Mode) -> str:
 @lru_cache(maxsize=64)
 def _cached_compile(pattern: str) -> Pattern[str]:
     return re.compile(pattern)
-
-
-def _ends_with_unescaped_quote(body: str) -> bool:
-    """Does `body` end in a `"` that is not already backslash-escaped?
-
-    A backslash only escapes the quote when it is not itself escaped, so the run
-    of backslashes in front of the quote has to be of even length for the quote
-    to still need escaping.
-    """
-    if body[-1:] != '"':
-        return False
-
-    preceding = body[:-1]
-    backslashes = len(preceding) - len(preceding.rstrip("\\"))
-    return backslashes % 2 == 0
 
 
 def normalize_string_quotes(s: str, *, preferred_quote: Quote) -> str:
@@ -237,7 +213,7 @@ def normalize_string_quotes(s: str, *, preferred_quote: Quote) -> str:
         new_body = sub_twice(escaped_orig_quote, rf"\1\2{orig_quote}", new_body)
         new_body = sub_twice(unescaped_new_quote, rf"\1\\{new_quote}", new_body)
 
-    if "f" in prefix.casefold() or "t" in prefix.casefold():
+    if "f" in prefix.casefold():
         matches = re.findall(
             r"""
             (?:(?<!\{)|^)\{  # start of the string or a non-{ followed by a single {
@@ -252,7 +228,7 @@ def normalize_string_quotes(s: str, *, preferred_quote: Quote) -> str:
                 # Do not introduce backslashes in interpolated expressions
                 return s
 
-    if new_quote == '"""' and _ends_with_unescaped_quote(new_body):
+    if new_quote == '"""' and new_body[-1:] == '"':
         # edge case:
         new_body = new_body[:-1] + '\\"'
     orig_escape_count = body.count("\\")
@@ -311,7 +287,7 @@ def normalize_fstring_quotes(
         new_segment = sub_twice(unescaped_new_quote, rf"\1\\{new_quote}", new_segment)
         new_segments.append(new_segment)
 
-    if new_quote == '"""' and _ends_with_unescaped_quote(new_segments[-1]):
+    if new_quote == '"""' and new_segments[-1].endswith('"'):
         # edge case:
         new_segments[-1] = new_segments[-1][:-1] + '\\"'
 
@@ -344,8 +320,8 @@ def normalize_unicode_escape_sequences(leaf: Leaf) -> None:
         groups = m.groupdict()
         back_slashes = groups["backslashes"]
 
-        if groups["body"] is None or len(back_slashes) % 2 == 0:
-            return m.group(0)
+        if len(back_slashes) % 2 == 0:
+            return back_slashes + groups["body"]
 
         if groups["u"]:
             # \u

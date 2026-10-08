@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from pyink.output import err, out, style_output
-from pyink.parsing import InvalidInput
+from click import style
+
+from pyink.output import err, out
 
 
 class Changed(Enum):
@@ -48,21 +49,9 @@ class Report:
                 out(msg, bold=False)
             self.same_count += 1
 
-    def failed(self, src: Path, message: BaseException) -> None:
+    def failed(self, src: Path, message: str) -> None:
         """Increment the counter for failed reformatting. Write out a message."""
-        if (
-            isinstance(message, InvalidInput)
-            and message.lineno is not None
-            and message.column is not None
-            and message.context
-        ):
-            details = message.details or ""
-            err(
-                f"error: {message.context}: {src}:{message.lineno}:"
-                f"{message.column}{details}"
-            )
-        else:
-            err(f"error: cannot format {src}: {message}")
+        err(f"error: cannot format {src}: {message}")
         self.failure_count += 1
 
     def path_ignored(self, path: Path, message: str) -> None:
@@ -105,33 +94,14 @@ class Report:
         if self.change_count:
             s = "s" if self.change_count > 1 else ""
             report.append(
-                style_output(f"{self.change_count} file{s} ", bold=True, fg="blue")
-                + style_output(f"{reformatted}", bold=True)
+                style(f"{self.change_count} file{s} ", bold=True, fg="blue")
+                + style(f"{reformatted}", bold=True)
             )
 
         if self.same_count:
             s = "s" if self.same_count > 1 else ""
-            report.append(
-                style_output(f"{self.same_count} file{s} ", fg="blue") + unchanged
-            )
+            report.append(style(f"{self.same_count} file{s} ", fg="blue") + unchanged)
         if self.failure_count:
             s = "s" if self.failure_count > 1 else ""
-            report.append(
-                style_output(f"{self.failure_count} file{s} {failed}", fg="red")
-            )
+            report.append(style(f"{self.failure_count} file{s} {failed}", fg="red"))
         return ", ".join(report) + "."
-
-    def write_github_outputs(self, output: Path) -> None:
-        is_formatted = "true" if self.change_count > 0 else "false"
-        _outputs = {
-            "is_formatted": is_formatted,
-            "change_count": str(self.change_count),
-            "same_count": str(self.same_count),
-            "failure_count": str(self.failure_count),
-        }
-        try:
-            with output.open("a", encoding="utf-8") as f:
-                for k, v in _outputs.items():
-                    f.write(f"{k}={v}\n")
-        except OSError:
-            pass

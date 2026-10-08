@@ -13,7 +13,6 @@ from mypy_extensions import trait
 
 from pyink.comments import contains_pragma_comment
 from pyink.lines import Indentation, Line, append_leaves
-from pyink.lines import Line, append_leaves, line_to_string
 from pyink.mode import Feature, Mode, Quote
 from pyink.nodes import (
     CLOSING_BRACKETS,
@@ -110,7 +109,11 @@ def hug_power_op(
     new_line = line.clone()
     should_hug = False
     for idx, leaf in enumerate(line.leaves):
-        hug_this_leaf = should_hug
+        new_leaf = leaf.clone()
+        if should_hug:
+            new_leaf.prefix = ""
+            should_hug = False
+
         should_hug = (
             (0 < idx < len(line.leaves) - 1)
             and leaf.type == token.DOUBLESTAR
@@ -118,18 +121,8 @@ def hug_power_op(
             and line.leaves[idx - 1].value != "lambda"
             and is_simple_operand(idx + 1, kind=1)
         )
-
-        if hug_this_leaf or should_hug:
-            new_leaf = leaf.clone()
+        if should_hug:
             new_leaf.prefix = ""
-        else:
-            # Only the operands around a hugged `**` need a copy. Reuse the leaf
-            # otherwise: a clone has no parent, and the trailing-comma guards in
-            # `Line.append` read the tree to tell a syntactically required comma
-            # (a one-tuple, or a one-element subscript like `a[x,]`) from a magic
-            # one. Without a parent they can't, so the comma was being dropped
-            # under --skip-magic-trailing-comma.
-            new_leaf = leaf
 
         # We have to be careful to make a new line properly:
         # - bracket related metadata must be maintained (handled by Line.append)
@@ -550,6 +543,7 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
             )
 
         new_line = line.clone()
+        new_line.comments = line.comments.copy()
         append_leaves(new_line, line, LL)
 
         for string_idx in indices_to_transform:
@@ -594,18 +588,8 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
         new_line = line.clone()
         previous_merged_string_idx = -1
         previous_merged_num_of_strings = -1
-        # Leaves outside any merged string group are copied in runs rather than
-        # one at a time. append_leaves resumes the search for each leaf's
-        # position from where the previous sibling of the same parent was found,
-        # so copying a run of leaves that share a parent (the operand tuple of
-        # "%s ..." % (a, b, c, ...)) stays linear; a fresh call per leaf restarts
-        # that search from the front every time and is quadratic in the operands.
-        pending: list[Leaf] = []
         for i, leaf in enumerate(LL):
             if i in merged_string_idx_dict:
-                if pending:
-                    append_leaves(new_line, line, pending)
-                    pending = []
                 previous_merged_string_idx = i
                 previous_merged_num_of_strings, string_leaf = merged_string_idx_dict[i]
                 new_line.append(string_leaf)
@@ -619,10 +603,7 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
                     new_line.append(comment_leaf, preformatted=True)
                 continue
 
-            pending.append(leaf)
-
-        if pending:
-            append_leaves(new_line, line, pending)
+            append_leaves(new_line, line, [leaf])
 
         return Ok(new_line)
 
@@ -669,7 +650,7 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
                     for span in iter_fexpr_spans(string)
                 ]
                 debug_expressions_contain_visible_quotes = any(
-                    re.search(r"[\'\"].*(?<![!:=])={1}(?!=)(?![^\s:])", expression)
+                    re.search(r".*[\'\"].*(?<![!:=])={1}(?!=)(?![^\s:])", expression)
                     for expression in f_expressions
                 )
                 if not debug_expressions_contain_visible_quotes:
@@ -716,6 +697,7 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
         #   NS: naked string
         #   SS: next string
         #   NSS: naked next string
+        S = ""
         NS = ""
         num_of_strings = 0
         next_str_idx = string_idx
@@ -736,20 +718,14 @@ class StringMerger(StringTransformer, CustomSplitMapMixin):
             has_prefix = bool(next_prefix)
             prefix_tracker.append(has_prefix)
 
-            # Each NSS is already naked (prefix and quotes stripped, inner quotes
-            # escaped, f-string expression quotes toggled), and the parts are
-            # separated by BREAK_MARK which contains no quote or backslash, so the
-            # naked group is just their concatenation. Re-running make_naked over the
-            # whole accumulated string on every iteration rescans all previously
-            # merged substrings, which is quadratic in the size of the group.
-            NS = NS + NSS + BREAK_MARK
+            S = prefix + QUOTE + NS + NSS + BREAK_MARK + QUOTE
+            NS = make_naked(S, prefix)
 
             next_str_idx += 1
 
         # Take a note on the index of the non-STRING leaf.
         non_string_idx = next_str_idx
 
-        S = prefix + QUOTE + NS + QUOTE
         S_leaf = Leaf(token.STRING, S)
         if self.normalize_strings:
             S_leaf.value = normalize_string_quotes(
@@ -989,7 +965,8 @@ class StringParenStripper(StringTransformer):
                 before_lpar = LL[idx - 2]
                 if token.PERCENT in {leaf.type for leaf in LL[idx - 1 : next_idx]} and (
                     (
-                        before_lpar.type in {
+                        before_lpar.type
+                        in {
                             token.STAR,
                             token.AT,
                             token.SLASH,
@@ -1075,6 +1052,7 @@ class StringParenStripper(StringTransformer):
         LL = line.leaves
 
         new_line = line.clone()
+        new_line.comments = line.comments.copy()
 
         previous_idx = -1
         # We need to sort the indices, since string_idx and its matching
@@ -1090,8 +1068,9 @@ class StringParenStripper(StringTransformer):
                 LL[lpar_or_rpar_idx].remove()  # Remove lpar.
                 replace_child(LL[idx], string_leaf)
                 new_line.append(string_leaf)
-                for comment_leaf in line.comments_after(LL[idx]):
-                    new_line.append(comment_leaf, preformatted=True)
+                # replace comments
+                old_comments = new_line.comments.pop(id(LL[idx]), [])
+                new_line.comments.setdefault(id(string_leaf), []).extend(old_comments)
             else:
                 LL[lpar_or_rpar_idx].remove()  # This is a rpar.
 
@@ -1641,11 +1620,6 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
         # can't fit onto the line currently being constructed.
         rest_value = LL[string_idx].value
 
-        # Each substring is a suffix of this value (plus the prefix and quote),
-        # so a missing "\N" here means no substring can hold a named escape and
-        # the per-substring scan for them can be skipped entirely.
-        has_named_escape = "\\N" in rest_value
-
         def more_splits_should_be_made() -> bool:
             """
             Returns:
@@ -1669,9 +1643,7 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
                     count_chars_in_width(rest_value, max_break_width)
                     - string_op_leaves_length
                 )
-                maybe_break_idx = self._get_break_idx(
-                    rest_value, max_bidx, has_named_escape
-                )
+                maybe_break_idx = self._get_break_idx(rest_value, max_bidx)
                 if maybe_break_idx is None:
                     # If we are unable to algorithmically determine a good split
                     # and this string has custom splits registered to it, we
@@ -1830,23 +1802,18 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
             return
         yield from iter_fexpr_spans(string)
 
-    def _get_illegal_split_indices(
-        self, string: str, has_named_escape: bool = True
-    ) -> set[Index]:
+    def _get_illegal_split_indices(self, string: str) -> set[Index]:
         illegal_indices: set[Index] = set()
-        iterators = [self._iter_fexpr_slices(string)]
-        # Scanning for \N{...} ranges walks the whole string, so skip it when the
-        # caller already knows the string cannot contain a named escape.
-        if has_named_escape:
-            iterators.append(self._iter_nameescape_slices(string))
+        iterators = [
+            self._iter_fexpr_slices(string),
+            self._iter_nameescape_slices(string),
+        ]
         for it in iterators:
             for begin, end in it:
                 illegal_indices.update(range(begin, end))
         return illegal_indices
 
-    def _get_break_idx(
-        self, string: str, max_break_idx: int, has_named_escape: bool = True
-    ) -> int | None:
+    def _get_break_idx(self, string: str, max_break_idx: int) -> int | None:
         """
         This method contains the algorithm that StringSplitter uses to
         determine which character to split each string at.
@@ -1858,8 +1825,6 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
             doesn't we will try to find the closest index BELOW @max_break_idx
             that does. If that fails, we will expand our search by also
             considering all valid indices ABOVE @max_break_idx.
-            @has_named_escape: Whether the original string can contain a named
-            escape. False lets us skip the per-substring scan for them.
 
         Pre-Conditions:
             * assert_is_leaf_string(@string)
@@ -1877,9 +1842,7 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
         assert is_valid_index(max_break_idx)
         assert_is_leaf_string(string)
 
-        _illegal_split_indices = self._get_illegal_split_indices(
-            string, has_named_escape
-        )
+        _illegal_split_indices = self._get_illegal_split_indices(string)
 
         def breaks_unsplittable_expression(i: Index) -> bool:
             """
@@ -1905,7 +1868,8 @@ class StringSplitter(BaseStringSplitter, CustomSplitMapMixin):
                 j -= 1
 
             is_big_enough = (
-                len(string) - i >= self.MIN_SUBSTR_SIZE and i >= self.MIN_SUBSTR_SIZE
+                len(string[i:]) >= self.MIN_SUBSTR_SIZE
+                and len(string[:i]) >= self.MIN_SUBSTR_SIZE
             )
             return (
                 (is_space or is_split_safe)
@@ -1989,8 +1953,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
 
         * The line is a return/yield statement, which returns/yields a string.
           OR
-        * The line is a function definition with a stringified return annotation.
-          OR
         * The line is part of a ternary expression (e.g. `x = y if cond else
           z`) such that the line starts with `else <string>`, where <string> is
           some string.
@@ -2004,7 +1966,7 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
         * The line is a dictionary key assignment where some valid key is being
           assigned the value of some string.
           OR
-        * The line is a lambda expression and the value is a string.
+        * The line is an lambda expression and the value is a string.
           OR
         * The line starts with an "atom" string that prefers to be wrapped in
           parens. It's preferred to be wrapped when it's is an immediate child of
@@ -2049,7 +2011,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
 
         string_idx = (
             self._return_match(LL)
-            or self._return_annotation_match(LL)
             or self._else_match(LL)
             or self._assert_match(LL)
             or self._assign_match(LL)
@@ -2063,34 +2024,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
             string_idx = self._prefer_paren_wrap_match(LL)
 
         if string_idx is not None:
-            # If the string is implicitly concatenated with a string on another
-            # line (e.g. raw strings, which StringMerger leaves alone), wrapping
-            # it in parens on its own would produce invalid code.
-            next_sibling = LL[string_idx].next_sibling
-            if next_sibling is not None and next_sibling.type == token.STRING:
-                if not any(leaf is next_sibling for leaf in LL):
-                    return TErr(
-                        "Cannot wrap a string that is implicitly concatenated with a"
-                        " string on another line."
-                    )
-
-                # Wrapping would move the first string's comments to the LPAR.
-                if line.comments:
-                    return TErr(
-                        "Cannot wrap an implicit concatenation that has comments."
-                    )
-
-                # If the first string fits on the line, splitting at the
-                # concatenation is enough.
-                tail = "".join(str(leaf) for leaf in LL[string_idx + 1 :])
-                if str_width(line_to_string(line)) - str_width(tail) <= (
-                    self.line_length
-                ):
-                    return TErr(
-                        "The first string of the implicit concatenation fits on"
-                        " the line."
-                    )
-
             string_value = line.leaves[string_idx].value
             # If the string has neither spaces nor East Asian stops...
             if not any(
@@ -2134,33 +2067,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
             # The next visible leaf MUST contain a string...
             if is_valid_index(idx) and LL[idx].type == token.STRING:
                 return idx
-
-        return None
-
-    @staticmethod
-    def _return_annotation_match(LL: list[Leaf]) -> int | None:
-        """Return the string index for a stringified return annotation."""
-        is_valid_index = is_valid_index_factory(LL)
-
-        for i, leaf in enumerate(LL):
-            if leaf.type != token.RARROW:
-                continue
-
-            string_idx = (
-                i + 2 if is_valid_index(i + 1) and is_empty_lpar(LL[i + 1]) else i + 1
-            )
-            if not is_valid_index(string_idx) or LL[string_idx].type != token.STRING:
-                return None
-
-            idx = StringParser().parse(LL, string_idx)
-            if (
-                is_valid_index(idx)
-                and LL[idx].type == token.COLON
-                and idx == len(LL) - 1
-            ):
-                return string_idx
-
-            return None
 
         return None
 
@@ -2254,15 +2160,9 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
                     if is_valid_index(idx) and LL[idx].type == token.STRING:
                         string_idx = idx
 
-                        # Skip any strings implicitly concatenated with it.
-                        while (
-                            is_valid_index(idx + 1) and LL[idx + 1].type == token.STRING
-                        ):
-                            idx += 1
-
                         # Skip the string trailer, if one exists.
                         string_parser = StringParser()
-                        idx = string_parser.parse(LL, idx)
+                        idx = string_parser.parse(LL, string_idx)
 
                         # The next leaf MAY be a comma iff this line is a part
                         # of a function argument...
@@ -2304,15 +2204,9 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
                     if is_valid_index(idx) and LL[idx].type == token.STRING:
                         string_idx = idx
 
-                        # Skip any strings implicitly concatenated with it.
-                        while (
-                            is_valid_index(idx + 1) and LL[idx + 1].type == token.STRING
-                        ):
-                            idx += 1
-
                         # Skip the string trailer, if one exists.
                         string_parser = StringParser()
-                        idx = string_parser.parse(LL, idx)
+                        idx = string_parser.parse(LL, string_idx)
 
                         # That string MAY be followed by a comma...
                         if is_valid_index(idx) and LL[idx].type == token.COMMA:
@@ -2367,13 +2261,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
         ends_with_comma = False
         if LL[comma_idx].type == token.COMMA:
             ends_with_comma = True
-        return_annotation_arrow_idx = (
-            string_idx - 2 if is_empty_lpar(LL[string_idx - 1]) else string_idx - 1
-        )
-        ends_with_return_annotation = (
-            LL[return_annotation_arrow_idx].type == token.RARROW
-            and LL[-1].type == token.COLON
-        )
 
         leaves_to_steal_comments_from = [LL[string_idx]]
         if ends_with_comma:
@@ -2430,8 +2317,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
             right_leaves = LL[string_idx + 1 :]
             if ends_with_comma:
                 right_leaves.pop()
-            if ends_with_return_annotation:
-                right_leaves.pop()
 
             if old_parens_exist:
                 assert right_leaves and right_leaves[-1].type == token.RPAR, (
@@ -2479,9 +2364,8 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
             comma_leaf = Leaf(token.COMMA, ",")
             replace_child(LL[comma_idx], comma_leaf)
             last_line.append(comma_leaf)
-        if ends_with_return_annotation:
-            append_leaves(last_line, line, [LL[-1]])
 
+        # GOOGLE: This is a fix for an upstream bug in Black.
         if old_rpar_leaf is not None:
             for comment_leaf in line.comments_after(old_rpar_leaf):
                 last_line.append(comment_leaf, preformatted=True)
@@ -2616,7 +2500,7 @@ class StringParser:
             if (current_state, next_token) in self._goto:
                 self._state = self._goto[current_state, next_token]
             else:
-                # Otherwise, we check if the current state was assigned a
+                # Otherwise, we check if a the current state was assigned a
                 # default.
                 if (current_state, self.DEFAULT_TOKEN) in self._goto:
                     self._state = self._goto[current_state, self.DEFAULT_TOKEN]
