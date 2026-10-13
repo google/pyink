@@ -1126,6 +1126,11 @@ class BaseStringSplitter(StringTransformer):
           AND
 
         * The target string is not a multiline (i.e. triple-quote) string.
+          AND
+
+        * The target string is not part of a type annotation. Splitting it
+          would produce an implicitly concatenated string annotation, which
+          pyright does not support (see StringMerger._validate_msg).
     """
 
     STRING_OPERATORS: Final = [
@@ -1208,6 +1213,9 @@ class BaseStringSplitter(StringTransformer):
 
         if has_triple_quotes(string_leaf.value):
             return TErr("We cannot split multiline strings.")
+
+        if is_part_of_annotation(string_leaf):
+            return TErr("We cannot split strings that are part of a type annotation.")
 
         return Ok(None)
 
@@ -2049,7 +2057,6 @@ class StringParenWrapper(BaseStringSplitter, CustomSplitMapMixin):
 
         string_idx = (
             self._return_match(LL)
-            or self._return_annotation_match(LL)
             or self._else_match(LL)
             or self._assert_match(LL)
             or self._assign_match(LL)

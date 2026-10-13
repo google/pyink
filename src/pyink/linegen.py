@@ -982,14 +982,7 @@ def should_split_funcdef_with_rhs(line: Line, mode: Mode) -> bool:
             track_bracket=id(leaf) in leaves_to_track,
         )
 
-    first_visible_return_leaf = next(
-        (leaf for leaf in return_type_leaves if leaf.value), None
-    )
-    return result.magic_trailing_comma is not None or (
-        first_visible_return_leaf is not None
-        and first_visible_return_leaf.type == token.STRING
-        and not is_line_short_enough(result, mode=mode)
-    )
+    return result.magic_trailing_comma is not None
 
 
 class _BracketSplitComponent(Enum):

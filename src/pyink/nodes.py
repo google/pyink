@@ -105,6 +105,7 @@ TEST_DESCENDANTS: Final = {
     syms.namedexpr_test,
 }
 TYPED_NAMES: Final = {syms.tname, syms.tname_star}
+TYPE_PARAMS: Final = {syms.typevar, syms.paramspec, syms.typevartuple}
 ASSIGNMENTS: Final = {
     "=",
     "+=",
@@ -1085,15 +1086,34 @@ def is_number_token(nl: NL) -> TypeGuard[Leaf]:
     return nl.type == token.NUMBER
 
 
-def get_annotation_type(leaf: Leaf) -> Literal["return", "param", None]:
-    """Returns the type of annotation this leaf is part of, if any."""
-    ancestor = leaf.parent
-    while ancestor is not None:
-        if ancestor.prev_sibling and ancestor.prev_sibling.type == token.RARROW:
-            return "return"
-        if ancestor.parent and ancestor.parent.type == syms.tname:
-            return "param"
-        ancestor = ancestor.parent
+def get_annotation_type(
+    leaf: Leaf,
+) -> Literal["return", "param", "assign", "typevar", None]:
+    """Returns the type of annotation this leaf is part of, if any.
+
+    * "return": a function return annotation (`def f() -> T:`)
+    * "param": a parameter annotation (`def f(x: T, *args: T, **kwargs: T):`)
+    * "assign": a variable or attribute annotation (`x: T` or `x: T = 1`)
+    * "typevar": a PEP 695 type parameter bound/default or `type` alias
+    """
+    node: LN | None = leaf
+    while node is not None:
+        parent = node.parent
+        prev_sibling = node.prev_sibling
+        if parent is not None and prev_sibling is not None:
+            if prev_sibling.type == token.RARROW:
+                return "return"
+            if prev_sibling.type == token.COLON:
+                if parent.type in TYPED_NAMES:
+                    return "param"
+                if parent.type == syms.annassign:
+                    return "assign"
+                if parent.type == syms.typevar:
+                    return "typevar"
+            if prev_sibling.type == token.EQUAL:
+                if parent.type in TYPE_PARAMS or parent.type == syms.type_stmt:
+                    return "typevar"
+        node = parent
     return None
 
 

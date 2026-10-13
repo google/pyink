@@ -540,7 +540,23 @@
          and not line.should_split_rhs
          and not line.magic_trailing_comma
          and (
-@@ -1083,7 +1133,6 @@
+@@ -932,14 +982,7 @@
+             track_bracket=id(leaf) in leaves_to_track,
+         )
+ 
+-    first_visible_return_leaf = next(
+-        (leaf for leaf in return_type_leaves if leaf.value), None
+-    )
+-    return result.magic_trailing_comma is not None or (
+-        first_visible_return_leaf is not None
+-        and first_visible_return_leaf.type == token.STRING
+-        and not is_line_short_enough(result, mode=mode)
+-    )
++    return result.magic_trailing_comma is not None
+ 
+ 
+ class _BracketSplitComponent(Enum):
+@@ -1083,7 +1126,6 @@
      omit: Collection[LeafID] = (),
  ) -> RHSResult:
      """Split the line into head, body, tail starting with the last bracket pair.
@@ -548,7 +564,7 @@
      Note: this function should not have side effects. It's relied upon by
      _maybe_split_omitting_optional_parens to get an opinion whether to prefer
      splitting on the right side of an assignment statement.
-@@ -1408,7 +1457,7 @@
+@@ -1408,7 +1450,7 @@
      for leaves in leaf_groups:
          for leaf in leaves:
              for comment in line.comments_after(leaf):
@@ -557,7 +573,7 @@
                      seen += 1
                      if seen > 1:
                          return True
-@@ -1434,7 +1483,7 @@
+@@ -1434,7 +1476,7 @@
      result = Line(mode=original.mode, depth=original.depth)
      if component is _BracketSplitComponent.body:
          result.inside_brackets = True
@@ -566,7 +582,7 @@
          if _ensure_trailing_comma(leaves, original, opening_bracket):
              for i in range(len(leaves) - 1, -1, -1):
                  if leaves[i].type == STANDALONE_COMMENT:
-@@ -1751,7 +1800,10 @@
+@@ -1751,7 +1793,10 @@
          comments = line.comments_after(leaf)
          for comment in comments:
              current_line.append(comment, preformatted=True)
@@ -578,7 +594,7 @@
              yield current_line
              current_line = Line(
                  mode=line.mode, depth=line.depth, inside_brackets=line.inside_brackets
-@@ -2294,7 +2346,11 @@
+@@ -2294,7 +2339,11 @@
              # Remove parentheses around multiple exception types in except and
              # except* without as. See PEP 758 for details.
              and not (
@@ -591,7 +607,7 @@
                  # is a tuple
                  and is_tuple(node)
                  # has a parent node
-@@ -2340,9 +2396,12 @@
+@@ -2340,9 +2389,12 @@
          middle = node.children[1]
          # make parentheses invisible
          if (
@@ -607,7 +623,7 @@
          ):
              first.value = ""
              last.value = ""
-@@ -2417,7 +2476,7 @@
+@@ -2417,7 +2469,7 @@
      if not line.magic_trailing_comma:
          yield omit
  
@@ -616,7 +632,7 @@
      opening_bracket: Leaf | None = None
      closing_bracket: Leaf | None = None
      inner_brackets: set[LeafID] = set()
-@@ -2492,7 +2551,7 @@
+@@ -2492,7 +2544,7 @@
      if not line.leaves:
          return False
      # The over-length must be caused entirely by a trailing comment.
@@ -625,7 +641,7 @@
      leaves_iter = iter(line.leaves)
      first = next(leaves_iter)
      text_without_comments = f"{first.prefix}{indent}{first.value}"
-@@ -2533,7 +2592,7 @@
+@@ -2533,7 +2585,7 @@
          or not line.bracket_tracker.invisible
          or any(bracket.value for bracket in line.bracket_tracker.invisible)
          or line.contains_multiline_strings()
@@ -1122,7 +1138,15 @@
  from pyink.cache import CACHE_DIR
  from pyink.mode import Mode, Preview
  from pyink.strings import get_string_prefix, has_triple_quotes
-@@ -857,9 +858,13 @@
+@@ -104,6 +105,7 @@
+     syms.namedexpr_test,
+ }
+ TYPED_NAMES: Final = {syms.tname, syms.tname_star}
++TYPE_PARAMS: Final = {syms.typevar, syms.paramspec, syms.typevartuple}
+ ASSIGNMENTS: Final = {
+     "=",
+     "+=",
+@@ -857,9 +859,13 @@
      return node.parent.type in {syms.funcdef, syms.classdef}
  
  
@@ -1138,7 +1162,7 @@
          return False
  
      # If there is a comment, we want to keep it.
-@@ -974,7 +979,7 @@
+@@ -974,7 +980,7 @@
  def is_type_comment(leaf: Leaf, mode: Mode) -> bool:
      """Return True if the given leaf is a type comment. This function should only
      be used for general type comments (excluding ignore annotations, which should
@@ -1147,7 +1171,7 @@
      used in modern version of Python, this function may be deprecated in the future."""
      t = leaf.type
      v = leaf.value
-@@ -985,12 +990,12 @@
+@@ -985,12 +991,12 @@
      return value.startswith("#") and value[1:].lstrip().startswith("type:")
  
  
@@ -1162,6 +1186,50 @@
 +    return t in {token.COMMENT, STANDALONE_COMMENT} and (
 +        ink_comments.comment_contains_pragma(v, mode)
      )
+ 
+ 
+@@ -1080,15 +1086,34 @@
+     return nl.type == token.NUMBER
+ 
+ 
+-def get_annotation_type(leaf: Leaf) -> Literal["return", "param", None]:
+-    """Returns the type of annotation this leaf is part of, if any."""
+-    ancestor = leaf.parent
+-    while ancestor is not None:
+-        if ancestor.prev_sibling and ancestor.prev_sibling.type == token.RARROW:
+-            return "return"
+-        if ancestor.parent and ancestor.parent.type == syms.tname:
+-            return "param"
+-        ancestor = ancestor.parent
++def get_annotation_type(
++    leaf: Leaf,
++) -> Literal["return", "param", "assign", "typevar", None]:
++    """Returns the type of annotation this leaf is part of, if any.
++
++    * "return": a function return annotation (`def f() -> T:`)
++    * "param": a parameter annotation (`def f(x: T, *args: T, **kwargs: T):`)
++    * "assign": a variable or attribute annotation (`x: T` or `x: T = 1`)
++    * "typevar": a PEP 695 type parameter bound/default or `type` alias
++    """
++    node: LN | None = leaf
++    while node is not None:
++        parent = node.parent
++        prev_sibling = node.prev_sibling
++        if parent is not None and prev_sibling is not None:
++            if prev_sibling.type == token.RARROW:
++                return "return"
++            if prev_sibling.type == token.COLON:
++                if parent.type in TYPED_NAMES:
++                    return "param"
++                if parent.type == syms.annassign:
++                    return "assign"
++                if parent.type == syms.typevar:
++                    return "typevar"
++            if prev_sibling.type == token.EQUAL:
++                if parent.type in TYPE_PARAMS or parent.type == syms.type_stmt:
++                    return "typevar"
++        node = parent
+     return None
  
  
 --- a/pyproject.toml
@@ -1388,6 +1456,138 @@
  for key in """
      hostname
      port
+--- a/tests/data/cases/preview_return_annotation_brackets_string.py
++++ b/tests/data/cases/preview_return_annotation_brackets_string.py
+@@ -1,9 +1,9 @@
+-# flags: --unstable
+-# Long string example
++# flags: --unstable --minimum-version=3.13
++# wrap a long string return annotation in parens, but don't split the string
+ def frobnicate() -> "ThisIsTrulyUnreasonablyExtremelyLongClassName | list[ThisIsTrulyUnreasonablyExtremelyLongClassName]":
+     pass
+ 
+-# split the string even when there are parameters
++# with parameters, split the parameters rather than the string
+ def frobnicate(a) -> "ThisIsTrulyUnreasonablyExtremelyLongClassName | list[ThisIsTrulyUnreasonablyExtremelyLongClassName]":
+     pass
+ 
+@@ -18,21 +18,43 @@
+ def with_unsplittable_string(a) -> "ThisIsTrulyUnreasonablyExtremelyLongClassNameWithoutAnySpacesWhatsoeverAndEvenMoreCharacters":
+     pass
+ 
++# don't split strings in parameter, subscript, or variable type annotations
++def func_single_string_annotations(
++    param: "ThisIsAVeryLongTypeAnnotationInAParameter | AnotherVeryLongTypeAnnotationInAParameter",
++    *args: Set["ThisIsAVeryLongTypeAnnotationInStarArgs | AnotherVeryLongTypeAnnotationInStarArgs"],
++    **kwargs: Set["ThisIsAVeryLongTypeAnnotationInKwargs | AnotherVeryLongTypeAnnotationInKwargs"],
++) -> Set["ThisIsAVeryLongTypeAnnotationInSubscript | AnotherVeryLongTypeAnnotationInSubscript"]:
++    x: "ThisIsAVeryLongTypeAnnotationInAnnAssign | AnotherVeryLongTypeAnnotationInAnnAssign"
++    y: Set["ThisIsAVeryLongTypeAnnotationInVarSubscript | AnotherVeryLongTypeAnnotationInVarSubscript"] = set()
++
++class WithAnnotations:
++    attr: Set["ThisIsAVeryLongTypeAnnotationInAClassBody | AnotherVeryLongTypeAnnotationInAClassBody"] = set()
++
++# don't split strings in type parameter bounds and defaults or type aliases
++def generic[T: Set["ThisIsAVeryLongBoundTypeAnnotationForTheTypeVar | AnotherVeryLongBoundTypeAnnotationForTheTypeVar"], *Ts = Set["ThisIsAVeryLongDefaultTypeAnnotationForTheTypeVar | AnotherVeryLongDefaultTypeAnnotationForTheTypeVar"]](x: T) -> T:
++    pass
++
++type Alias = Set["ThisIsAVeryLongTypeAnnotationInATypeAlias | AnotherVeryLongTypeAnnotationInATypeAlias"]
++
++# strings that are not annotations are still split
++annotated: Final = "this is a very long string value that is not a type annotation and may still be split"
++
++def with_default(a: int = Set["this is a very long default value that is not a type annotation and may still be split"]) -> None:
++    return Set["this is a very long return value that is not a type annotation and may still be split"]
++
+ # output
+ 
+-# Long string example
++# wrap a long string return annotation in parens, but don't split the string
+ def frobnicate() -> (
+-    "ThisIsTrulyUnreasonablyExtremelyLongClassName |"
+-    " list[ThisIsTrulyUnreasonablyExtremelyLongClassName]"
++    "ThisIsTrulyUnreasonablyExtremelyLongClassName | list[ThisIsTrulyUnreasonablyExtremelyLongClassName]"
+ ):
+     pass
+ 
+ 
+-# split the string even when there are parameters
+-def frobnicate(a) -> (
+-    "ThisIsTrulyUnreasonablyExtremelyLongClassName |"
+-    " list[ThisIsTrulyUnreasonablyExtremelyLongClassName]"
+-):
++# with parameters, split the parameters rather than the string
++def frobnicate(
++    a,
++) -> "ThisIsTrulyUnreasonablyExtremelyLongClassName | list[ThisIsTrulyUnreasonablyExtremelyLongClassName]":
+     pass
+ 
+ 
+@@ -50,3 +72,64 @@
+     a,
+ ) -> "ThisIsTrulyUnreasonablyExtremelyLongClassNameWithoutAnySpacesWhatsoeverAndEvenMoreCharacters":
+     pass
++
++
++# don't split strings in parameter, subscript, or variable type annotations
++def func_single_string_annotations(
++    param: "ThisIsAVeryLongTypeAnnotationInAParameter | AnotherVeryLongTypeAnnotationInAParameter",
++    *args: Set[
++        "ThisIsAVeryLongTypeAnnotationInStarArgs | AnotherVeryLongTypeAnnotationInStarArgs"
++    ],
++    **kwargs: Set[
++        "ThisIsAVeryLongTypeAnnotationInKwargs | AnotherVeryLongTypeAnnotationInKwargs"
++    ],
++) -> Set[
++    "ThisIsAVeryLongTypeAnnotationInSubscript | AnotherVeryLongTypeAnnotationInSubscript"
++]:
++    x: "ThisIsAVeryLongTypeAnnotationInAnnAssign | AnotherVeryLongTypeAnnotationInAnnAssign"
++    y: Set[
++        "ThisIsAVeryLongTypeAnnotationInVarSubscript | AnotherVeryLongTypeAnnotationInVarSubscript"
++    ] = set()
++
++
++class WithAnnotations:
++    attr: Set[
++        "ThisIsAVeryLongTypeAnnotationInAClassBody | AnotherVeryLongTypeAnnotationInAClassBody"
++    ] = set()
++
++
++# don't split strings in type parameter bounds and defaults or type aliases
++def generic[
++    T: Set[
++        "ThisIsAVeryLongBoundTypeAnnotationForTheTypeVar | AnotherVeryLongBoundTypeAnnotationForTheTypeVar"
++    ],
++    *Ts = Set[
++        "ThisIsAVeryLongDefaultTypeAnnotationForTheTypeVar | AnotherVeryLongDefaultTypeAnnotationForTheTypeVar"
++    ],
++](
++    x: T,
++) -> T:
++    pass
++
++
++type Alias = Set[
++    "ThisIsAVeryLongTypeAnnotationInATypeAlias | AnotherVeryLongTypeAnnotationInATypeAlias"
++]
++
++# strings that are not annotations are still split
++annotated: Final = (
++    "this is a very long string value that is not a type annotation and may still be"
++    " split"
++)
++
++
++def with_default(
++    a: int = Set[
++        "this is a very long default value that is not a type annotation and may still"
++        " be split"
++    ],
++) -> None:
++    return Set[
++        "this is a very long return value that is not a type annotation and may still"
++        " be split"
++    ]
 --- a/tests/data/cases/torture.py
 +++ b/tests/data/cases/torture.py
 @@ -57,9 +57,9 @@
@@ -1787,7 +1987,19 @@
          return TErr("This line has no strings wrapped in parens.")
  
      def do_transform(
-@@ -1181,7 +1199,7 @@
+@@ -1108,6 +1126,11 @@
+           AND
+ 
+         * The target string is not a multiline (i.e. triple-quote) string.
++          AND
++
++        * The target string is not part of a type annotation. Splitting it
++          would produce an implicitly concatenated string annotation, which
++          pyright does not support (see StringMerger._validate_msg).
+     """
+ 
+     STRING_OPERATORS: Final = [
+@@ -1181,7 +1204,7 @@
              )
  
          if id(line.leaves[string_idx]) in line.comments and contains_pragma_comment(
@@ -1796,7 +2008,17 @@
          ):
              return TErr(
                  "Line appears to end with an inline pragma comment. Splitting the line"
-@@ -1223,7 +1241,7 @@
+@@ -1191,6 +1214,9 @@
+         if has_triple_quotes(string_leaf.value):
+             return TErr("We cannot split multiline strings.")
+ 
++        if is_part_of_annotation(string_leaf):
++            return TErr("We cannot split strings that are part of a type annotation.")
++
+         return Ok(None)
+ 
+     def _get_max_string_length(self, line: Line, string_idx: int) -> int:
+@@ -1223,7 +1249,7 @@
          #   NN: The leaf that is after N.
  
          # WMA4 the whitespace at the beginning of the line.
@@ -1805,7 +2027,7 @@
  
          if is_valid_index(string_idx - 1):
              p_idx = string_idx - 1
-@@ -1591,7 +1609,7 @@
+@@ -1591,7 +1617,7 @@
                  characters expand to two columns).
              """
              result = self.line_length
@@ -1814,7 +2036,7 @@
              result -= 1 if ends_with_comma else 0
              result -= string_op_leaves_length
              return result
-@@ -1602,11 +1620,11 @@
+@@ -1602,11 +1628,11 @@
          # The last index of a string of length N is N-1.
          max_break_width -= 1
          # Leading whitespace is not present in the string value (e.g. Leaf.value).
@@ -1828,7 +2050,7 @@
              )
              return
  
-@@ -1918,7 +1936,9 @@
+@@ -1918,7 +1944,9 @@
  
      def _maybe_normalize_string_quotes(self, leaf: Leaf) -> None:
          if self.normalize_strings:
@@ -1839,7 +2061,15 @@
  
      def _normalize_f_string(self, string: str, prefix: str) -> str:
          """
-@@ -2077,7 +2097,8 @@
+@@ -2029,7 +2057,6 @@
+ 
+         string_idx = (
+             self._return_match(LL)
+-            or self._return_annotation_match(LL)
+             or self._else_match(LL)
+             or self._assert_match(LL)
+             or self._assign_match(LL)
+@@ -2077,7 +2104,8 @@
                  char == " " or char in SPLIT_SAFE_CHARS for char in string_value
              ):
                  # And will still violate the line length limit when split...
@@ -1849,7 +2079,7 @@
                  if str_width(string_value) > max_string_width:
                      # And has no associated custom splits...
                      if not self.has_custom_splits(string_value):
-@@ -2395,7 +2416,7 @@
+@@ -2395,7 +2423,7 @@
          string_value = LL[string_idx].value
          string_line = Line(
              mode=line.mode,
