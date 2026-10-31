@@ -44,7 +44,7 @@ dependencies = [
     "pytokens~=0.4.0",
     "tomli>=1.1.0; python_version<'3.11'",
     "typing-extensions>=4.0.1; python_version<'3.11'",
-    "black==26.10.0",
+    "black==26.10.1",
 ]
 dynamic = ["version"]
 
